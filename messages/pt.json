@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "wall": "Parede",
+    "art": "Arte",
+    "crop": "Corte",
+    "place": "Posição",
+    "render": "Renderizar",
+    "switchLang": "EN"
+  },
+  "wall": {
+    "step": "Passo 1 de 6",
+    "title": "Sua Parede",
+    "subtitle": "Forneça uma foto clara da parede onde deseja pendurar a obra de arte.",
+    "selectButton": "Selecionar Foto da Parede",
+    "guidelines": "Ver dicas de fotografia",
+    "continueButton": "Continuar para a Obra",
+    "changePhoto": "Trocar foto",
+    "errors": {
+      "invalidType": "Por favor, envie uma imagem JPEG, PNG ou WebP.",
+      "tooLarge": "A imagem é muito grande e será comprimida."
+    }
+  },
+  "painting": {
+    "step": "Passo 2 de 6",
+    "title": "A Obra de Arte",
+    "subtitle": "Envie uma foto da obra que deseja colocar na sua parede.",
+    "confirmed": "Parede Confirmada",
+    "selectButton": "Selecionar Foto da Obra",
+    "dragDrop": "Arraste e solte ou clique para selecionar",
+    "continueButton": "Continuar para o Corte",
+    "previousButton": "Passo Anterior",
+    "notes": {
+      "title": "Dicas de Fotografia",
+      "planar": "Fotografe a obra de frente para evitar distorção trapezoidal.",
+      "exposure": "Use exposição neutra — evite filtros pesados.",
+      "edge": "Se a obra tiver bordas irregulares, fotografe contra um fundo de alto contraste."
+    },
+    "errors": {
+      "invalidType": "Por favor, envie uma imagem JPEG, PNG ou WebP.",
+      "tooLarge": "A imagem é muito grande e será comprimida."
+    }
+  },
+  "crop": {
+    "step": "Passo 3 de 6",
+    "title": "Recortar a Obra",
+    "subtitle": "Recorte bem próximo à borda externa completa da peça que deseja colocar na parede.",
+    "instruction": "Arraste os cantos para ajustar a área de corte.",
+    "confirmButton": "Confirmar Recorte",
+    "previousButton": "Passo Anterior"
+  },
+  "placement": {
+    "step": "Passo 4 de 6",
+    "title": "Posicionar na Parede",
+    "subtitle": "Arraste, redimensione e gire a obra para posicioná-la na parede.",
+    "resetButton": "Redefinir Posição",
+    "adjustCornersButton": "Ajustar Cantos",
+    "continueButton": "Continuar para Renderizar",
+    "previousButton": "Passo Anterior"
+  },
+  "perspective": {
+    "step": "Passo 5 de 6",
+    "title": "Ajustar Cantos",
+    "subtitle": "Arraste cada canto independentemente para corresponder à perspectiva da parede.",
+    "resetButton": "Redefinir para Retângulo",
+    "continueButton": "Continuar para Renderizar",
+    "previousButton": "Passo Anterior"
+  },
+  "render": {
+    "step": "Passo 6 de 6",
+    "title": "Sua Obra Está Pronta",
+    "subtitle": "Revise a composição final e baixe sua imagem.",
+    "renderButton": "Renderizar",
+    "downloadButton": "Baixar PNG",
+    "renderAgainButton": "Renderizar Novamente",
+    "startOverButton": "Começar do Zero",
+    "loading": "Renderizando sua composição...",
+    "error": "Falha na renderização. Tente novamente.",
+    "previousButton": "Passo Anterior"
+  }
+}

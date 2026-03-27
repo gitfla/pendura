@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Manrope:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#f1faff",
+              "primary-dim": "#42546a",
+              "primary-fixed-dim": "#c3d6f0",
+              "error-dim": "#4e0309",
+              "tertiary-container": "#fee3d1",
+              "on-surface-variant": "#5a615c",
+              "surface-dim": "#d4dcd5",
+              "tertiary-fixed": "#fee3d1",
+              "surface-container-lowest": "#ffffff",
+              "surface-tint": "#4e6076",
+              "surface-container-high": "#e5e9e4",
+              "primary": "#4e6076",
+              "on-tertiary-container": "#645244",
+              "inverse-surface": "#0d0f0d",
+              "on-error": "#fff7f6",
+              "outline": "#767c77",
+              "on-background": "#2e3430",
+              "error": "#9f403d",
+              "on-surface": "#2e3430",
+              "inverse-on-surface": "#9c9d9b",
+              "background": "#f9f9f6",
+              "primary-container": "#d1e4ff",
+              "on-secondary-container": "#485458",
+              "inverse-primary": "#d1e4ff",
+              "tertiary-dim": "#625042",
+              "on-secondary-fixed": "#354146",
+              "on-primary-fixed-variant": "#4b5d73",
+              "secondary-fixed": "#d8e4ea",
+              "on-secondary-fixed-variant": "#515d62",
+              "secondary-dim": "#49555a",
+              "on-tertiary": "#fff7f4",
+              "secondary-fixed-dim": "#cad6dc",
+              "error-container": "#fe8983",
+              "tertiary-fixed-dim": "#efd5c3",
+              "surface-bright": "#f9f9f6",
+              "on-error-container": "#752121",
+              "surface-container-highest": "#dee4de",
+              "surface": "#f9f9f6",
+              "outline-variant": "#adb3ae",
+              "surface-variant": "#dee4de",
+              "on-primary": "#f5f8ff",
+              "tertiary": "#6e5b4d",
+              "secondary": "#556166",
+              "on-tertiary-fixed-variant": "#6e5b4d",
+              "on-primary-container": "#415369",
+              "surface-container-low": "#f3f4f0",
+              "surface-container": "#ecefea",
+              "on-tertiary-fixed": "#504032",
+              "on-primary-fixed": "#2f4156",
+              "secondary-container": "#d8e4ea",
+              "primary-fixed": "#d1e4ff"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .serif-text {
+            font-family: 'Noto Serif', serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f9f9f6]/80 dark:bg-[#1a1c1e]/80 backdrop-blur-xl border-b border-[#adb3ae]/15 flex justify-between items-center px-6 py-4 w-full shadow-none">
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<h1 class="text-[#4e6076] dark:text-[#a5c8ff] font-['Noto_Serif'] font-normal tracking-wide text-lg">Step 2 of 5</h1>
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</header>
+<main class="flex-grow pt-24 pb-32 px-6 max-w-5xl mx-auto w-full">
+<!-- Context Chip / Reassurance -->
+<div class="flex items-center gap-4 mb-16 animate-in fade-in duration-700">
+<div class="relative group">
+<div class="w-16 h-20 bg-surface-container overflow-hidden">
+<img alt="Previously uploaded wall photo" class="w-full h-full object-cover" data-alt="Modern minimalist living room wall with natural light casting soft shadows on a beige textured plaster surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Npr_Up7gGpK-uha4I7cau5K7WlQfX8Lrb5j67LO_u-j2r5_P_Wlomz2PjAJy5eXZ3V9BNakAK9oM0hoqwfgFZcvE7sUJg7pXwbgx5DAqj_wLMPfiiZtlW6Y_E4mupme856hur766hMGzCQpQMn2yAZmO74EqKT0sTCfQGcdmDje9Zui3soonIzh0asItzx8FMQu_5vwe2MD_Mp5bOGLwiD58k6djU57sX7Xch9ai4wZ7oBk1_S-Vu1TyDbWwhYMIJgCnbWfM4Q"/>
+</div>
+<div class="absolute -top-2 -right-2 bg-primary text-on-primary w-6 h-6 flex items-center justify-center rounded-full shadow-lg">
+<span class="material-symbols-outlined !text-[14px]" data-icon="check">check</span>
+</div>
+</div>
+<div>
+<span class="block font-label text-[10px] uppercase tracking-[0.2rem] text-outline mb-1">Source Context</span>
+<span class="block font-body text-sm font-medium">Gallery Wall Confirmed</span>
+</div>
+</div>
+<!-- Hero Headline Section -->
+<section class="mb-20 max-w-2xl">
+<h2 class="serif-text text-5xl md:text-6xl font-normal text-on-surface tracking-tight mb-6 leading-tight">
+                The Artwork
+            </h2>
+<p class="font-body text-lg text-on-surface-variant leading-relaxed">
+                Upload the high-resolution master of your painting. Our engine will calibrate lighting and grain to match your physical environment perfectly.
+            </p>
+</section>
+<!-- Main Content Area: Asymmetric Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+<!-- Upload Area -->
+<div class="md:col-span-7">
+<div class="group relative cursor-pointer border-2 border-dashed border-outline-variant/30 bg-surface-container-low aspect-[4/5] flex flex-col items-center justify-center p-12 transition-all hover:bg-surface-container">
+<div class="text-center">
+<span class="material-symbols-outlined !text-4xl text-primary mb-6 block" data-icon="add_photo_alternate">add_photo_alternate</span>
+<h3 class="font-label text-xs uppercase tracking-[0.15rem] font-bold text-on-surface mb-2">Select Painting Photo</h3>
+<p class="font-body text-sm text-outline">Drag and drop or click to browse</p>
+</div>
+<!-- Decorative Corners -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary/20"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary/20"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary/20"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary/20"></div>
+</div>
+</div>
+<!-- Curatorial Notes / Sidebar -->
+<aside class="md:col-span-5 space-y-12 md:mt-12">
+<div class="bg-surface-container-high p-10">
+<h4 class="font-label text-[11px] uppercase tracking-[0.25rem] font-bold text-primary mb-8">Curatorial Notes</h4>
+<ul class="space-y-8">
+<li class="flex gap-5">
+<span class="font-headline text-2xl text-primary/30 shrink-0">01</span>
+<div>
+<h5 class="font-body font-bold text-sm mb-1 uppercase tracking-wider">Planar Alignment</h5>
+<p class="font-body text-xs text-on-surface-variant leading-relaxed">Ensure the painting is shot head-on. Trapozoidal distortion can affect the digital placement precision.</p>
+</div>
+</li>
+<li class="flex gap-5">
+<span class="font-headline text-2xl text-primary/30 shrink-0">02</span>
+<div>
+<h5 class="font-body font-bold text-sm mb-1 uppercase tracking-wider">Neutral Exposure</h5>
+<p class="font-body text-xs text-on-surface-variant leading-relaxed">Avoid heavy filters. A clean, balanced exposure allows our renderer to apply environmental shadows accurately.</p>
+</div>
+</li>
+<li class="flex gap-5">
+<span class="font-headline text-2xl text-primary/30 shrink-0">03</span>
+<div>
+<h5 class="font-body font-bold text-sm mb-1 uppercase tracking-wider">Edge Definition</h5>
+<p class="font-body text-xs text-on-surface-variant leading-relaxed">If the painting has raw edges, photograph it against a high-contrast background for better edge detection.</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Studio Vibe Decorative Image -->
+<div class="relative overflow-hidden aspect-video bg-surface-dim">
+<img alt="Studio art detail" class="w-full h-full object-cover opacity-60 grayscale hover:grayscale-0 transition-all duration-1000" data-alt="Close-up of vibrant oil paint textures and brushstrokes on a high-quality linen canvas in a professional art studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQ9Q8xq8OJT6S7gHRKRyJzfca1c5T1JgvcsL-ws23ihw4Y8X_g7-gVJQcdnxNcE89gppzAyfRYakl5ECpT_KF5uxagUktwnsngekBPnkJ2N197VlNH9QCGn70JfpX8hMrh48FAwD4Kp1sqX8A5Nc9HCT676W6rhTW1Tg-NZW-ZH7zziyY8vX0hA3Cm7mo7tDVcjxfE9cboa-ifXsE_Cnu9M7IALBoA_gIPrCriKDtMML4qwDbR1cwn3qsJLYt5xaLeQXH7YRbb4A"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="font-label text-[10px] uppercase tracking-[0.4rem] text-white bg-on-surface/40 px-4 py-2 backdrop-blur-sm">Studio Rendering</span>
+</div>
+</div>
+</aside>
+</div>
+<!-- Navigation Buttons -->
+<div class="mt-24 flex flex-col md:flex-row justify-between items-center gap-8 border-t border-outline-variant/10 pt-12">
+<button class="font-label text-[10px] uppercase tracking-[0.2rem] text-outline hover:text-primary transition-colors flex items-center gap-2 group">
+<span class="material-symbols-outlined transition-transform group-hover:-translate-x-1" data-icon="arrow_back">arrow_back</span>
+                Previous Step
+            </button>
+<button class="w-full md:w-auto px-12 py-5 bg-primary text-on-primary font-label text-xs uppercase tracking-[0.2rem] font-bold hover:bg-primary-dim transition-colors shadow-xl shadow-primary/10">
+                Continue to Crop
+            </button>
+</div>
+</main>
+<!-- BottomNavBar (Hidden as this is a transactional flow) -->
+<!-- Suppressed per Destination Rule: Page is Step 2 of a process -->
+<footer class="mt-auto py-8 px-6 text-center border-t border-outline-variant/5">
+<p class="font-body text-[10px] text-outline-variant uppercase tracking-[0.2rem]">The Digital Curator © 2024</p>
+</footer>
+</body></html>

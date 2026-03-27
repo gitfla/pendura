@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "wall": "Wall",
+    "art": "Art",
+    "crop": "Crop",
+    "place": "Place",
+    "render": "Render",
+    "switchLang": "PT"
+  },
+  "wall": {
+    "step": "Step 1 of 6",
+    "title": "Your Wall",
+    "subtitle": "Provide a clear photo of the wall where you'd like to hang the artwork.",
+    "selectButton": "Select Wall Photo",
+    "guidelines": "View photography guidelines",
+    "continueButton": "Continue to Artwork",
+    "changePhoto": "Change photo",
+    "errors": {
+      "invalidType": "Please upload a JPEG, PNG, or WebP image.",
+      "tooLarge": "Image is very large and will be compressed."
+    }
+  },
+  "painting": {
+    "step": "Step 2 of 6",
+    "title": "The Artwork",
+    "subtitle": "Upload a photo of the painting you'd like to place on your wall.",
+    "confirmed": "Gallery Wall Confirmed",
+    "selectButton": "Select Painting Photo",
+    "dragDrop": "Drag and drop or click to browse",
+    "continueButton": "Continue to Crop",
+    "previousButton": "Previous Step",
+    "notes": {
+      "title": "Photography Notes",
+      "planar": "Shoot the painting head-on to avoid trapezoid distortion.",
+      "exposure": "Use neutral exposure — avoid heavy filters.",
+      "edge": "If the painting has raw edges, photograph against a high-contrast background."
+    },
+    "errors": {
+      "invalidType": "Please upload a JPEG, PNG, or WebP image.",
+      "tooLarge": "Image is very large and will be compressed."
+    }
+  },
+  "crop": {
+    "step": "Step 3 of 6",
+    "title": "Crop the Painting",
+    "subtitle": "Crop tightly around the full outer edge of the piece you want to place on the wall.",
+    "instruction": "Drag the corners to adjust the crop area.",
+    "confirmButton": "Confirm Crop",
+    "previousButton": "Previous Step"
+  },
+  "placement": {
+    "step": "Step 4 of 6",
+    "title": "Place on Wall",
+    "subtitle": "Drag, resize, and rotate the painting to position it on your wall.",
+    "resetButton": "Reset Placement",
+    "adjustCornersButton": "Adjust Corners",
+    "continueButton": "Continue to Render",
+    "previousButton": "Previous Step"
+  },
+  "perspective": {
+    "step": "Step 5 of 6",
+    "title": "Adjust Corners",
+    "subtitle": "Drag each corner independently to match the perspective of your wall.",
+    "resetButton": "Reset to Rectangle",
+    "continueButton": "Continue to Render",
+    "previousButton": "Previous Step"
+  },
+  "render": {
+    "step": "Step 6 of 6",
+    "title": "Your Artwork is Ready",
+    "subtitle": "Review the final composition and download your image.",
+    "renderButton": "Render",
+    "downloadButton": "Download PNG",
+    "renderAgainButton": "Render Again",
+    "startOverButton": "Start Over",
+    "loading": "Rendering your composition...",
+    "error": "Rendering failed. Please try again.",
+    "previousButton": "Previous Step"
+  }
+}

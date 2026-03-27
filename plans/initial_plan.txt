@@ -1,0 +1,492 @@
+Build a stateless MVP web app in Next.js + React + TypeScript + Tailwind for placing a painting photo onto a wall photo.
+
+Requirements:
+
+* Multi-step flow: upload wall photo, upload painting photo, crop painting photo, place painting on wall, optional perspective corner adjustment, render final PNG.
+* No auth, no database, no permanent storage.
+* Use client-side state for the editor.
+* Crop step must be mandatory and use a simple freeform rectangular crop UI.
+* Placement step must support drag, resize, rotate.
+* Add an advanced “Adjust corners” mode with 4 draggable corner handles.
+* Create a Next.js API route /api/render that accepts the wall image, cropped painting image, quad coordinates, and returns a composited PNG.
+* Use a Python OpenCV renderer for perspective transform, shadow generation, and compositing.
+* Make the UI mobile-aware, with larger handles and explicit edit modes on smaller screens.
+* Keep the architecture simple and production-minded, but optimized for fast MVP implementation.
+
+
+Final v1 decisions
+Stack: Next.js monolith, same style as Comidinha
+Rendering: Python + OpenCV
+Storage/DB: none for now
+Painting input: regular painting photos
+Crop step: mandatory, simple freeform rectangular crop
+Placement: drag, resize, rotate
+Perspective adjustment: optional 4-corner mode
+Platforms: mobile-aware from day one, but editor UX can be stronger on desktop
+Output: PNG only
+AI: not in v1
+Product flow
+Screen 1 — Upload
+
+User uploads:
+
+wall photo
+painting photo
+Screen 2 — Crop painting
+
+User crops the painting photo tightly around the piece they want placed.
+
+Important instruction text:
+
+Crop around the full outer edge of the piece you want to place on the wall.
+
+Screen 3 — Place on wall
+
+User sees:
+
+wall photo as background
+cropped painting overlaid on top
+
+User can:
+
+drag
+resize
+rotate
+Screen 4 — Adjust corners
+
+Optional advanced mode:
+
+“Adjust corners”
+four draggable corner handles for perspective
+Screen 5 — Render and download
+
+User taps render, gets final PNG, downloads it.
+
+Recommended architecture
+Frontend
+
+Use your existing pattern:
+
+Next.js App Router
+React
+TypeScript
+Tailwind
+local component state
+localStorage only if you want very light recovery
+Backend
+
+Inside the Next app:
+
+/api/render
+optional /api/health
+
+The backend should stay thin:
+
+validate request
+pass images + quad + options to Python renderer
+return PNG bytes
+Renderer
+
+Separate Python script or tiny local service:
+
+read wall image
+read cropped painting image
+compute perspective transform
+warp painting into destination quad
+generate soft shadow
+composite result
+return PNG
+What to build first
+Milestone 1 — App shell
+
+Goal: basic project running.
+
+Tasks:
+
+create Next.js app
+set up Tailwind
+create page layout
+set up shared types
+create empty screens/components
+
+Suggested components:
+
+UploadStep
+CropStep
+PlacementStep
+Toolbar
+EditorCanvas
+
+Suggested types:
+
+Point
+Quad
+PlacementState
+ProjectState
+Milestone 2 — Upload step
+
+Goal: accept both images and preview them.
+
+Tasks:
+
+wall photo uploader
+painting photo uploader
+file type validation
+file size validation
+client-side compression
+image preview
+
+Rules:
+
+accept jpeg/png/webp if you want
+compress large images before they go into the editor
+keep originals in memory if possible for better final render later
+
+State to track:
+
+wall image file
+painting image file
+preview URLs
+image dimensions
+Milestone 3 — Crop step
+
+Goal: user crops the painting photo before placement.
+
+Recommended UX:
+
+rectangular crop box
+draggable crop region
+resize handles
+no rotation in crop mode for v1
+
+Tasks:
+
+show uploaded painting image
+add freeform crop box
+allow drag/resize crop box
+preview cropped result
+confirm crop and proceed
+
+Output of this step:
+
+cropped painting image blob
+cropped image dimensions
+
+Important:
+This crop step should feel quick, not like a full editor.
+
+Milestone 4 — Placement editor
+
+Goal: place the cropped painting on the wall.
+
+Recommended tool:
+
+react-konva
+
+Tasks:
+
+display wall image as base layer
+display cropped painting as overlay
+make overlay draggable
+add resize handles
+add rotate handle
+store transform state
+add reset placement action
+
+State to track:
+
+x
+y
+width
+height
+rotation
+derived corner points
+
+Important:
+Even in basic mode, your final state should eventually resolve to a quad.
+
+Milestone 5 — Perspective mode
+
+Goal: optional advanced corner adjustment.
+
+Tasks:
+
+add “Adjust corners” mode toggle
+show 4 corner handles
+let each corner drag independently
+update quad in state
+add “Reset to rectangle”
+prevent obvious broken states if possible
+
+Recommended UX:
+
+basic mode first
+advanced mode only when user asks
+larger touch targets on mobile
+
+Final placement data should be:
+
+type Point = { x: number; y: number };
+
+type Quad = {
+  topLeft: Point;
+  topRight: Point;
+  bottomRight: Point;
+  bottomLeft: Point;
+};
+Milestone 6 — Render API
+
+Goal: wire frontend to backend.
+
+Request shape
+
+Use multipart form data with:
+
+wall image
+cropped painting image
+quad JSON
+shadow settings JSON
+output format
+
+Suggested payload fields:
+
+wallImage
+paintingImage
+quad
+shadow
+format
+Tasks
+create /api/render
+validate presence of files
+validate JSON fields
+write temp files or stream to Python
+invoke renderer
+return PNG response
+Milestone 7 — Python renderer
+
+Goal: generate the actual final image.
+
+Tasks:
+
+load wall image
+load painting image
+normalize formats
+define source painting corners:
+(0,0)
+(w,0)
+(w,h)
+(0,h)
+compute perspective transform to destination quad
+warp painting
+create mask
+create shadow from mask
+composite shadow onto wall
+composite warped painting on top
+export PNG
+
+Suggested renderer modules:
+
+load_images.py
+warp.py
+shadow.py
+composite.py
+main.py
+Shadow defaults
+
+Start simple:
+
+blur: 18 px
+opacity: 0.18
+offsetX: 8
+offsetY: 10
+
+No need for UI controls yet. Hardcode first.
+
+Data flow
+In the browser
+
+Keep temporary state only:
+
+type ProjectState = {
+  wallImage: File | null;
+  paintingImage: File | null;
+  croppedPaintingBlob: Blob | null;
+  cropRect: { x: number; y: number; width: number; height: number } | null;
+  placement: {
+    mode: "basic" | "perspective";
+    quad: Quad;
+    rotationDeg: number;
+  } | null;
+};
+On render
+
+Browser sends:
+
+wall image
+cropped painting
+quad
+
+Server returns:
+
+PNG bytes
+
+That’s it.
+
+Suggested folder structure
+app/
+  page.tsx
+  api/
+    render/
+      route.ts
+
+components/
+  steps/
+    UploadStep.tsx
+    CropStep.tsx
+    PlacementStep.tsx
+  editor/
+    WallCanvas.tsx
+    PaintingOverlay.tsx
+    CornerHandles.tsx
+    Toolbar.tsx
+
+lib/
+  types.ts
+  image.ts
+  geometry.ts
+  validation.ts
+  constants.ts
+
+renderer/
+  main.py
+  warp.py
+  shadow.py
+  composite.py
+  utils.py
+Implementation order for Claude Code
+
+Give Claude Code tasks in this order.
+
+Task 1
+
+Scaffold the app:
+
+Next.js
+TypeScript
+Tailwind
+app layout
+top-level step flow
+Task 2
+
+Build upload step:
+
+two upload inputs
+validation
+preview state
+navigation to crop step
+Task 3
+
+Build painting crop step:
+
+display uploaded painting
+freeform rectangular crop
+drag/resize
+confirm crop
+export cropped blob
+Task 4
+
+Build placement editor:
+
+wall background
+cropped painting overlay
+drag/resize/rotate
+desktop and mobile-friendly controls
+Task 5
+
+Add perspective mode:
+
+4 corner handles
+toggle mode
+reset to rectangle
+quad state model
+Task 6
+
+Create /api/render:
+
+multipart parsing
+validation
+call Python renderer
+return PNG
+Task 7
+
+Build Python renderer:
+
+perspective warp
+shadow
+compositing
+PNG output
+Task 8
+
+Wire frontend render button:
+
+send form data
+display loading state
+preview final result
+download PNG
+Task 9
+
+Polish:
+
+error states
+oversized image handling
+mobile handle sizes
+reset actions
+better instruction text
+Acceptance criteria for v1
+
+You should be able to say yes to all of these:
+
+user can upload a wall photo
+user can upload a painting photo
+user must crop painting before continuing
+user can place painting on wall
+user can resize and rotate it
+user can optionally adjust all 4 corners
+app produces a believable final PNG
+no account is required
+no data is permanently stored
+
+If all of that works, v1 is valid.
+
+Tradeoff notes you should keep in mind
+API routes in-app
+
+Good now because:
+
+fewer moving parts
+faster iteration
+easier local dev
+
+Only split later if:
+
+render times get annoying
+AI enhancement becomes async
+you need queueing/retries
+deploy/runtime constraints become painful
+SSR vs SPA
+
+For this editor:
+
+treat it mostly like a client-side tool
+use Next because it matches your existing stack and makes routing/API easy
+don’t over-optimize SSR for the editor itself
+
+So effectively:
+
+landing/app shell: standard Next
+editor: SPA-like client interaction
+
+
+------
+
+detail: we should have a portuguese version and an english version. it should be internationalized.

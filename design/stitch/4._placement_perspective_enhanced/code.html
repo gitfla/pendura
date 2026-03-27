@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Manrope:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#f1faff",
+              "primary-dim": "#42546a",
+              "primary-fixed-dim": "#c3d6f0",
+              "error-dim": "#4e0309",
+              "tertiary-container": "#fee3d1",
+              "on-surface-variant": "#5a615c",
+              "surface-dim": "#d4dcd5",
+              "tertiary-fixed": "#fee3d1",
+              "surface-container-lowest": "#ffffff",
+              "surface-tint": "#4e6076",
+              "surface-container-high": "#e5e9e4",
+              "primary": "#4e6076",
+              "on-tertiary-container": "#645244",
+              "inverse-surface": "#0d0f0d",
+              "on-error": "#fff7f6",
+              "outline": "#767c77",
+              "on-background": "#2e3430",
+              "error": "#9f403d",
+              "on-surface": "#2e3430",
+              "inverse-on-surface": "#9c9d9b",
+              "background": "#f9f9f6",
+              "primary-container": "#d1e4ff",
+              "on-secondary-container": "#485458",
+              "inverse-primary": "#d1e4ff",
+              "tertiary-dim": "#625042",
+              "on-secondary-fixed": "#354146",
+              "on-primary-fixed-variant": "#4b5d73",
+              "secondary-fixed": "#d8e4ea",
+              "on-secondary-fixed-variant": "#515d62",
+              "secondary-dim": "#49555a",
+              "on-tertiary": "#fff7f4",
+              "secondary-fixed-dim": "#cad6dc",
+              "error-container": "#fe8983",
+              "tertiary-fixed-dim": "#efd5c3",
+              "surface-bright": "#f9f9f6",
+              "on-error-container": "#752121",
+              "surface-container-highest": "#dee4de",
+              "surface": "#f9f9f6",
+              "outline-variant": "#adb3ae",
+              "surface-variant": "#dee4de",
+              "on-primary": "#f5f8ff",
+              "tertiary": "#6e5b4d",
+              "secondary": "#556166",
+              "on-tertiary-fixed-variant": "#6e5b4d",
+              "on-primary-container": "#415369",
+              "surface-container-low": "#f3f4f0",
+              "surface-container": "#ecefea",
+              "on-tertiary-fixed": "#504032",
+              "on-primary-fixed": "#2f4156",
+              "secondary-container": "#d8e4ea",
+              "primary-fixed": "#d1e4ff"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        .perspective-handle {
+            width: 12px;
+            height: 12px;
+            background: white;
+            border: 1.5px solid #4e6076;
+            position: absolute;
+            z-index: 20;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#f9f9f6]/80 dark:bg-[#1a1c1e]/80 backdrop-blur-xl border-b border-[#adb3ae]/15 flex justify-between items-center px-6 py-4">
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">close</span>
+</button>
+<h1 class="font-['Noto_Serif'] font-normal tracking-wide text-lg text-[#4e6076] dark:text-[#a5c8ff]">Step 4 of 5</h1>
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</nav>
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto min-h-screen flex flex-col">
+<!-- Editorial Header Section -->
+<header class="mb-12 md:mb-20 md:grid md:grid-cols-12 gap-8 items-end">
+<div class="md:col-span-7">
+<span class="font-label text-xs uppercase tracking-[0.2em] text-outline mb-4 block">Composition &amp; Depth</span>
+<h2 class="font-headline text-4xl md:text-6xl font-normal leading-tight text-on-background">Step 4: Curate the Space</h2>
+<p class="mt-6 font-body text-lg text-on-surface-variant max-w-xl leading-relaxed">
+                    Refine the narrative of your room. Drag the artwork to its natural anchor point, pinch to scale the proportions, and ensure the perspective aligns with the architecture of your wall.
+                </p>
+</div>
+<div class="hidden md:flex md:col-span-5 justify-end">
+<div class="text-right">
+<p class="font-label text-[10px] uppercase tracking-widest text-outline mb-2">Instructions</p>
+<p class="font-body text-sm italic">"Drag to position, pinch to scale"</p>
+</div>
+</div>
+</header>
+<!-- Main Interaction Canvas -->
+<section class="relative w-full aspect-[4/3] md:aspect-[16/9] bg-surface-container overflow-hidden group">
+<!-- Background Wall Photo -->
+<img alt="Modern minimalist interior wall" class="w-full h-full object-cover" data-alt="Interior shot of a minimalist white gallery wall with soft natural side lighting and clean architectural lines." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRUlgO2tulLAJFOmf2HVs5e8cHkKcLveNbBsqcD0Ubs7tOHOSO4qn4DRolsQbRaXUyMaVzXqSW-pTjSawKkfEO3gZVNe236qOJzrVq-O389GseAiKYaoPzKdT8KSq5VWCD26Wb6H1_R0gN1HRwkP-PXGg7Blu8OWczjMBBpukB2Up5F_hocWSTnCP_bmbCZW5T-7jVqDIMuVOD8hJI5SnpJYjWidP6570G-S6Bnxr7y18JSysOXZpMOBxSEL_kQOliNdRQFCp3-Q"/>
+<!-- Overlay Interface Elements -->
+<div class="absolute inset-0 bg-black/5 pointer-events-none"></div>
+<!-- Perspective/Placement UI Wrapper -->
+<div class="absolute inset-0 flex items-center justify-center">
+<!-- Cropped Painting with Perspective Handles -->
+<div class="relative w-1/3 aspect-[3/4] shadow-2xl transition-transform cursor-move group/artwork">
+<!-- The Artwork -->
+<div class="w-full h-full relative overflow-hidden ring-1 ring-white/20">
+<img alt="Abstract painting being placed" class="w-full h-full object-cover" data-alt="Detail of a vibrant abstract expressionist painting with bold brushstrokes of ochre, deep blue, and muted grey on canvas." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6-JWGAOGjyfhK8vr-x3RQO5ZcLuLgFP9FcI8iQL0RBnzNii7QumXF45eECGHXjv2MS9uXl2kv986S5VWce7nPj7ELZNaagcbK1GTXUtwLlpK4YOe0lVPoDQbZ5lxnVO85H1SgbSNQB_rOyA9usrJrB2vzUknVbi3rLj_CC7AbPH9q_YhzP_NZYWGncPyKfoKRuytIO7ryEk5MtGiwnf03Oqqj9tMiXYP6BSJIsD_LFvmgblnCJCl1DPkPn-OaDD0-yKC9pRIfOw"/>
+<!-- Light and shadow simulation on artwork -->
+<div class="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent"></div>
+</div>
+<!-- Perspective Handles (Visible in 'Adjust Corners' mode) -->
+<div class="perspective-handle -top-1.5 -left-1.5 cursor-nwse-resize"></div>
+<div class="perspective-handle -top-1.5 -right-1.5 cursor-nesw-resize"></div>
+<div class="perspective-handle -bottom-1.5 -left-1.5 cursor-nesw-resize"></div>
+<div class="perspective-handle -bottom-1.5 -right-1.5 cursor-nwse-resize"></div>
+<!-- Active State Guide Lines -->
+<div class="absolute -inset-8 border border-primary/20 pointer-events-none opacity-0 group-hover/artwork:opacity-100 transition-opacity">
+<div class="absolute top-1/2 left-0 w-full h-px bg-primary/10"></div>
+<div class="absolute top-0 left-1/2 h-full w-px bg-primary/10"></div>
+</div>
+</div>
+</div>
+<!-- Floating Toolset -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-surface/80 backdrop-blur-md px-6 py-3 shadow-sm border border-outline-variant/15">
+<button class="flex items-center gap-2 font-label text-xs uppercase tracking-widest text-primary hover:text-primary-dim transition-colors">
+<span class="material-symbols-outlined text-sm">settings_overscan</span>
+                    Adjust Corners
+                </button>
+<div class="w-px h-4 bg-outline-variant/30"></div>
+<button class="flex items-center gap-2 font-label text-xs uppercase tracking-widest text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-sm">rotate_90_degrees_ccw</span>
+                    Level
+                </button>
+</div>
+</section>
+<!-- Secondary Context / Progress -->
+<section class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="md:col-span-2 flex items-center gap-6 p-8 bg-surface-container-low">
+<div class="w-16 h-16 bg-surface-container-high flex-shrink-0 relative">
+<img alt="Wall thumbnail" class="w-full h-full object-cover opacity-50" data-alt="Small thumbnail of the minimalist white wall texture for context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN7u1kEE6_83bnJ59DJA5YsOTXNzmtPgpYrt0a-hb9Pv6ju90p-Dof29GSEcYua6Gr7Q9wUyBUBW1gscNLf6p69T4eN6OFOTKD7QtTO28bUp8TwFuz6Yqb94ShGkNJ35fIlxhmLdAXFDx2fN-kkLG8U5rZRA-o-PpjZWTyjAueBZ7isLgQgjeex2NZXiZZ_c6DiUnaffP8RvbT6yfk9AzGd4NGb0DSbsBa6IY0W_3BLU33u3aCJtyhrH9QQSakkEkCRywCp2SQMA"/>
+</div>
+<div class="material-symbols-outlined text-outline">add</div>
+<div class="w-16 h-16 bg-surface-container-high flex-shrink-0 relative">
+<img alt="Art thumbnail" class="w-full h-full object-cover opacity-80" data-alt="Small thumbnail of the abstract painting texture for context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKF7kS1AVNHolmvvxAVdZ8W40DwoFo_sunhjx12vKUH7wjVMGh1iLGXIyqBF0m8igbF71XKgo9MnPpqMRxq18uy21ZuIRL-T_3XvomxD2_2wxvvmKHNFJQRpA2m_5C6ITG2QWlMOEBbcx9QBs_SuokBxtLIUcX_ersANTaxSTS-moTRTBO1szwFVJZY5CwRwsyORP7SVPdyQskTE5KGNX-1IWSVGrYNcmYN3ZK5vD09w4xLSbo5kujJDX9gTk1FO8JilBOrFctEA"/>
+</div>
+<div class="ml-auto hidden sm:block">
+<p class="font-label text-[10px] uppercase tracking-widest text-outline">Canvas Scale</p>
+<p class="font-body text-sm text-on-surface font-medium">1:12 Real-world</p>
+</div>
+</div>
+<div class="flex flex-col justify-center">
+<button class="w-full bg-primary text-on-primary py-5 font-label text-sm uppercase tracking-[0.2em] hover:bg-primary-dim transition-all active:scale-[0.98]">
+                    Continue to Render
+                </button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#f9f9f6] dark:bg-[#1a1c1e] border-t border-[#adb3ae]/15 flex justify-around items-center px-2 pb-safe">
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined">wallpaper</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">Wall</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined">image</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">Art</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined">crop_free</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">Crop</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#4e6076] dark:text-[#a5c8ff] border-t-2 border-[#4e6076] pt-2 active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">layers</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">Place</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 transition-all cursor-pointer">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">Render</span>
+</div>
+</nav>
+</body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Step 3: Refine Composition</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&amp;family=Noto+Serif:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#f1faff",
+              "primary-dim": "#42546a",
+              "primary-fixed-dim": "#c3d6f0",
+              "error-dim": "#4e0309",
+              "tertiary-container": "#fee3d1",
+              "on-surface-variant": "#5a615c",
+              "surface-dim": "#d4dcd5",
+              "tertiary-fixed": "#fee3d1",
+              "surface-container-lowest": "#ffffff",
+              "surface-tint": "#4e6076",
+              "surface-container-high": "#e5e9e4",
+              "primary": "#4e6076",
+              "on-tertiary-container": "#645244",
+              "inverse-surface": "#0d0f0d",
+              "on-error": "#fff7f6",
+              "outline": "#767c77",
+              "on-background": "#2e3430",
+              "error": "#9f403d",
+              "on-surface": "#2e3430",
+              "inverse-on-surface": "#9c9d9b",
+              "background": "#f9f9f6",
+              "primary-container": "#d1e4ff",
+              "on-secondary-container": "#485458",
+              "inverse-primary": "#d1e4ff",
+              "tertiary-dim": "#625042",
+              "on-secondary-fixed": "#354146",
+              "on-primary-fixed-variant": "#4b5d73",
+              "secondary-fixed": "#d8e4ea",
+              "on-secondary-fixed-variant": "#515d62",
+              "secondary-dim": "#49555a",
+              "on-tertiary": "#fff7f4",
+              "secondary-fixed-dim": "#cad6dc",
+              "error-container": "#fe8983",
+              "tertiary-fixed-dim": "#efd5c3",
+              "surface-bright": "#f9f9f6",
+              "on-error-container": "#752121",
+              "surface-container-highest": "#dee4de",
+              "surface": "#f9f9f6",
+              "outline-variant": "#adb3ae",
+              "surface-variant": "#dee4de",
+              "on-primary": "#f5f8ff",
+              "tertiary": "#6e5b4d",
+              "secondary": "#556166",
+              "on-tertiary-fixed-variant": "#6e5b4d",
+              "on-primary-container": "#415369",
+              "surface-container-low": "#f3f4f0",
+              "surface-container": "#ecefea",
+              "on-tertiary-fixed": "#504032",
+              "on-primary-fixed": "#2f4156",
+              "secondary-container": "#d8e4ea",
+              "primary-fixed": "#d1e4ff"
+            },
+            fontFamily: {
+              "headline": ["Noto Serif"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+        }
+        .canvas-shadow {
+            box-shadow: 0 40px 80px -20px rgba(46, 52, 48, 0.08);
+        }
+        body {
+            background-color: #f9f9f6;
+            color: #2e3430;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#f9f9f6]/80 dark:bg-[#1a1c1e]/80 backdrop-blur-xl border-b border-[#adb3ae]/15 flex justify-between items-center px-6 py-4 w-full">
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<h1 class="text-[#4e6076] dark:text-[#a5c8ff] font-['Noto_Serif'] font-normal tracking-wide text-lg">Step 3 of 5</h1>
+<button class="text-[#4e6076] dark:text-[#a5c8ff] hover:opacity-70 transition-opacity scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+</header>
+<main class="flex-grow pt-24 pb-32 px-6 max-w-5xl mx-auto w-full flex flex-col">
+<!-- Progress Bar -->
+<div class="w-full flex gap-2 mb-12">
+<div class="h-0.5 flex-grow bg-primary"></div>
+<div class="h-0.5 flex-grow bg-primary"></div>
+<div class="h-0.5 flex-grow bg-primary"></div>
+<div class="h-0.5 flex-grow bg-surface-container-highest"></div>
+<div class="h-0.5 flex-grow bg-surface-container-highest"></div>
+</div>
+<!-- Headline -->
+<div class="mb-12">
+<h2 class="font-headline text-4xl md:text-5xl lg:text-6xl text-on-surface tracking-tight mb-4">Refine Composition</h2>
+<p class="text-on-surface-variant max-w-md font-body text-sm leading-relaxed tracking-wide">
+                Adjust the perspective and orientation of your curation. Every angle tells a different narrative.
+            </p>
+</div>
+<!-- Main Canvas Area -->
+<div class="relative flex-grow flex items-center justify-center bg-surface-container-low p-8 md:p-12 mb-12">
+<div class="relative w-full max-w-2xl aspect-[4/5] bg-white canvas-shadow group overflow-hidden">
+<img alt="Refine composition" class="w-full h-full object-cover grayscale-[20%] contrast-110" data-alt="Modern abstract oil painting with earthy tones, deep blues, and textured brushstrokes on a large gallery canvas" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0JeGWTQr8Dlh3D8oRhH53Hp5Zpc5L8inUmqpQxK1rriXRDoq4mhGak_cmO3jDbkjaNa1Y-aVzmlhJBVeILPBYEZcJCOZoFjtsZkIcKyFMs617vgex_IdUcL92-97poqRweLPFL--EEqNWskF9m_N89hBbEvQQb7yRKNRthbeO0Hmf0nk3UVmwt9RmCMggyFqseiwST7486O1O45MOOHfOlgdupnondpx8ywdbDh9kbHQPKgvereHHDwcG35hB7yL4yNWku5YY0w"/>
+<!-- Crop Overlays -->
+<div class="absolute inset-0 border-[40px] border-surface/40 pointer-events-none"></div>
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+<div class="h-px w-full bg-white/30 mt-[33%]"></div>
+<div class="h-px w-full bg-white/30 mb-[33%]"></div>
+</div>
+<div class="absolute inset-0 flex justify-between pointer-events-none">
+<div class="w-px h-full bg-white/30 ml-[33%]"></div>
+<div class="w-px h-full bg-white/30 mr-[33%]"></div>
+</div>
+<!-- Crop Handles -->
+<div class="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-white m-4"></div>
+<div class="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-white m-4"></div>
+<div class="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-white m-4"></div>
+<div class="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-white m-4"></div>
+</div>
+</div>
+<!-- Tool Selection -->
+<div class="grid grid-cols-2 gap-px bg-outline-variant/15 max-w-xs mx-auto w-full">
+<button class="group flex flex-col items-center justify-center py-6 bg-surface hover:bg-surface-container-low transition-colors border-r border-outline-variant/15">
+<span class="material-symbols-outlined text-primary mb-3 scale-110 group-active:rotate-90 transition-transform duration-300" data-icon="rotate_right">rotate_right</span>
+<span class="font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">Rotate</span>
+</button>
+<button class="group flex flex-col items-center justify-center py-6 bg-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-primary mb-3 scale-110 group-active:scale-x-[-1] transition-transform duration-300" data-icon="flip">flip</span>
+<span class="font-label text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">Mirror</span>
+</button>
+</div>
+<!-- Navigation Action -->
+<div class="mt-16 flex justify-end">
+<button class="bg-primary text-on-primary px-12 py-4 font-label text-xs uppercase tracking-[0.2em] hover:bg-primary-dim transition-colors active:scale-95">
+                Continue
+            </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#f9f9f6] dark:bg-[#1a1c1e] border-t border-[#adb3ae]/15 flex justify-around items-center w-full px-2 pb-safe h-16">
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">
+<span class="material-symbols-outlined mb-1" data-icon="wallpaper">wallpaper</span>
+<span>Wall</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">
+<span class="material-symbols-outlined mb-1" data-icon="image">image</span>
+<span>Art</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#4e6076] dark:text-[#a5c8ff] border-t-2 border-[#4e6076] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">
+<span class="material-symbols-outlined mb-1" data-icon="crop_free">crop_free</span>
+<span>Crop</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">
+<span class="material-symbols-outlined mb-1" data-icon="layers">layers</span>
+<span>Place</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#444746] pt-2 hover:text-[#4e6076] transition-colors active:opacity-80 font-['Manrope'] text-[10px] uppercase tracking-[0.1rem] font-medium">
+<span class="material-symbols-outlined mb-1" data-icon="auto_awesome">auto_awesome</span>
+<span>Render</span>
+</div>
+</nav>
+</body></html>

@@ -1,26 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&family=Manrope:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface: #f9f9f6;
+  --surface-dim: #d4dcd5;
+  --surface-container: #ecefea;
+  --surface-container-low: #f3f4f0;
+  --surface-container-high: #e0e3de;
+  --surface-container-highest: #d8dbd6;
+  --surface-container-lowest: #ffffff;
+  --surface-variant: #dee4de;
+  --on-surface: #2e3430;
+  --on-surface-variant: #4a5049;
+  --primary: #4e6076;
+  --primary-dim: #42546a;
+  --on-primary: #ffffff;
+  --outline-variant: #adb3ae;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-radius: 0 !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: "Manrope", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: "Noto Serif", serif;
+}
+
+.font-sans {
+  font-family: "Manrope", sans-serif;
 }
