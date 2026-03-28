@@ -71,11 +71,11 @@ export default function PaintingUploadStep() {
       </p>
 
       <div
-        className="mb-6 relative flex flex-col items-center justify-center"
+        className="mb-6 relative flex flex-col items-center justify-center gap-3"
         style={{
           backgroundColor: "var(--surface-container-low)",
           border: "1.5px dashed var(--outline-variant)",
-          minHeight: "200px",
+          minHeight: "180px",
         }}
       >
         <input
@@ -91,12 +91,12 @@ export default function PaintingUploadStep() {
           </p>
         ) : (
           <>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="square" style={{ color: "var(--outline-variant)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="square" style={{ color: "var(--outline-variant)" }}>
               <rect x="3" y="3" width="18" height="18" />
               <line x1="12" y1="8" x2="12" y2="16" />
               <line x1="8" y1="12" x2="16" y2="12" />
             </svg>
-            <p className="mt-3 text-xs tracking-widest uppercase" style={{ color: "var(--on-surface-variant)" }}>
+            <p className="text-xs tracking-widest uppercase" style={{ color: "var(--on-surface-variant)" }}>
               {t("selectButton")}
             </p>
           </>

@@ -6,6 +6,8 @@ import { useProject } from "@/context/ProjectContext";
 import { validateImageFile } from "@/lib/validation";
 import { compressImageIfNeeded, readFileAsDataUrl } from "@/lib/image";
 
+const STEP_KEYS = ["01", "02", "03", "04", "05"] as const;
+
 export default function WallUploadStep() {
   const t = useTranslations("wall");
   const { setState, goNext } = useProject();
@@ -49,12 +51,13 @@ export default function WallUploadStep() {
         {t("subtitle")}
       </p>
 
+      {/* Upload zone */}
       <div
-        className="mb-8 relative flex flex-col items-center justify-center"
+        className="relative flex flex-col items-center justify-center gap-3"
         style={{
           backgroundColor: "var(--surface-container-low)",
           border: "1.5px dashed var(--outline-variant)",
-          minHeight: "200px",
+          minHeight: "180px",
         }}
       >
         <input
@@ -70,12 +73,12 @@ export default function WallUploadStep() {
           </p>
         ) : (
           <>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="square" style={{ color: "var(--outline-variant)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="square" style={{ color: "var(--outline-variant)" }}>
               <rect x="3" y="3" width="18" height="18" />
               <line x1="3" y1="9" x2="21" y2="9" />
               <line x1="9" y1="3" x2="9" y2="9" />
             </svg>
-            <p className="mt-3 text-xs tracking-widest uppercase" style={{ color: "var(--on-surface-variant)" }}>
+            <p className="text-xs tracking-widest uppercase" style={{ color: "var(--on-surface-variant)" }}>
               {t("selectButton")}
             </p>
           </>
@@ -83,8 +86,23 @@ export default function WallUploadStep() {
       </div>
 
       {error && (
-        <p className="mb-4 text-sm" style={{ color: "#c0392b" }}>{error}</p>
+        <p className="mb-6 text-sm" style={{ color: "#c0392b" }}>{error}</p>
       )}
+
+      {/* How it works */}
+      <div className="p-4" style={{ backgroundColor: "var(--surface-container)", marginTop: "2rem" }}>
+        <p className="text-[10px] tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
+          {t("howItWorksTitle")}
+        </p>
+        {STEP_KEYS.map((n) => (
+          <div key={n} className="mb-4 last:mb-0 flex gap-4">
+            <span className="text-xs font-serif" style={{ color: "var(--outline-variant)", minWidth: "20px" }}>{n}</span>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--on-surface-variant)" }}>
+              {t(`howItWorks.${n}`)}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

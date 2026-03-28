@@ -15,6 +15,14 @@
     "guidelines": "Ver dicas de fotografia",
     "continueButton": "Continuar para a Obra",
     "changePhoto": "Trocar foto",
+    "howItWorksTitle": "Como funciona",
+    "howItWorks": {
+      "01": "Fotografe sua parede",
+      "02": "Envie sua obra de arte",
+      "03": "Recorte e alinhe",
+      "04": "Posicione na parede",
+      "05": "Baixe o resultado"
+    },
     "errors": {
       "invalidType": "Por favor, envie uma imagem JPEG, PNG ou WebP.",
       "tooLarge": "A imagem é muito grande e será comprimida."

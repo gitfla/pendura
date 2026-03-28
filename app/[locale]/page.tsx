@@ -3,6 +3,7 @@
 import { useProject } from "@/context/ProjectContext";
 import StepNav from "@/components/ui/StepNav";
 import ProgressBar from "@/components/ui/ProgressBar";
+import SiteHeader from "@/components/ui/SiteHeader";
 import WallUploadStep from "@/components/steps/WallUploadStep";
 import PaintingUploadStep from "@/components/steps/PaintingUploadStep";
 import CropStep from "@/components/steps/CropStep";
@@ -15,6 +16,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--surface)" }}>
+      <SiteHeader />
       <ProgressBar />
       <main className="flex-1 pb-24">
         {currentStep === "wall" && <WallUploadStep />}

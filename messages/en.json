@@ -15,6 +15,14 @@
     "guidelines": "View photography guidelines",
     "continueButton": "Continue to Artwork",
     "changePhoto": "Change photo",
+    "howItWorksTitle": "How it works",
+    "howItWorks": {
+      "01": "Photograph your wall",
+      "02": "Upload your artwork",
+      "03": "Crop & straighten",
+      "04": "Position on the wall",
+      "05": "Download the result"
+    },
     "errors": {
       "invalidType": "Please upload a JPEG, PNG, or WebP image.",
       "tooLarge": "Image is very large and will be compressed."
