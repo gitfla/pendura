@@ -45,6 +45,7 @@
     "title": "Recortar a Obra",
     "subtitle": "Recorte bem próximo à borda externa completa da peça que deseja colocar na parede.",
     "instruction": "Arraste os cantos para ajustar a área de corte.",
+    "rotateLabel": "Girar",
     "confirmButton": "Confirmar Recorte",
     "previousButton": "Passo Anterior"
   },

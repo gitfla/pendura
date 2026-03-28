@@ -88,6 +88,7 @@ export default function KonvaPlacement({
   }
 
   return (
+    <div style={{ touchAction: "pan-y" }}>
     <Stage width={containerWidth} height={stageHeight}>
       <Layer>
         <KonvaImage
@@ -117,5 +118,6 @@ export default function KonvaPlacement({
         />
       </Layer>
     </Stage>
+    </div>
   );
 }

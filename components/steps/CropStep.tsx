@@ -14,6 +14,28 @@ type Handle =
 
 const MIN_SIZE = 40;
 
+function rotateImageToBlob(img: HTMLImageElement, deg: number): Promise<string> {
+  const rad = (deg * Math.PI) / 180;
+  const sin = Math.abs(Math.sin(rad));
+  const cos = Math.abs(Math.cos(rad));
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const newW = Math.round(w * cos + h * sin);
+  const newH = Math.round(w * sin + h * cos);
+  const canvas = document.createElement("canvas");
+  canvas.width = newW;
+  canvas.height = newH;
+  const ctx = canvas.getContext("2d")!;
+  ctx.translate(newW / 2, newH / 2);
+  ctx.rotate(rad);
+  ctx.drawImage(img, -w / 2, -h / 2);
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(URL.createObjectURL(blob!));
+    }, "image/jpeg", 0.92);
+  });
+}
+
 export default function CropStep() {
   const t = useTranslations("crop");
   const { state, setState, goNext, goPrev } = useProject();
@@ -22,6 +44,8 @@ export default function CropStep() {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [displaySize, setDisplaySize] = useState({ w: 0, h: 0 });
   const [crop, setCrop] = useState<CropBox>({ x: 16, y: 16, w: 0, h: 0 });
+  const [rotation, setRotation] = useState(0);
+  const [rotatedUrl, setRotatedUrl] = useState<string | null>(null);
   const dragRef = useRef<{
     handle: Handle;
     startX: number;
@@ -29,16 +53,18 @@ export default function CropStep() {
     startCrop: CropBox;
   } | null>(null);
 
-  // Init crop box once image is loaded
-  useEffect(() => {
-    if (!imgLoaded || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const w = rect.width;
-    const h = imgRef.current?.offsetHeight ?? rect.height;
+  const initCropBox = useCallback(() => {
+    if (!containerRef.current || !imgRef.current) return;
+    const w = imgRef.current.offsetWidth;
+    const h = imgRef.current.offsetHeight;
     setDisplaySize({ w, h });
     const pad = 24;
     setCrop({ x: pad, y: pad, w: w - pad * 2, h: h - pad * 2 });
-  }, [imgLoaded]);
+  }, []);
+
+  useEffect(() => {
+    if (imgLoaded) initCropBox();
+  }, [imgLoaded, initCropBox]);
 
   const clampCrop = useCallback((c: CropBox, dw: number, dh: number): CropBox => {
     let { x, y, w, h } = c;
@@ -73,24 +99,15 @@ export default function CropStep() {
       const { w: dw, h: dh } = displaySize;
 
       switch (handle) {
-        case "move":
-          x += dx; y += dy; break;
-        case "tl":
-          x += dx; y += dy; w -= dx; h -= dy; break;
-        case "tc":
-          y += dy; h -= dy; break;
-        case "tr":
-          y += dy; w += dx; h -= dy; break;
-        case "ml":
-          x += dx; w -= dx; break;
-        case "mr":
-          w += dx; break;
-        case "bl":
-          x += dx; w -= dx; h += dy; break;
-        case "bc":
-          h += dy; break;
-        case "br":
-          w += dx; h += dy; break;
+        case "move": x += dx; y += dy; break;
+        case "tl": x += dx; y += dy; w -= dx; h -= dy; break;
+        case "tc": y += dy; h -= dy; break;
+        case "tr": y += dy; w += dx; h -= dy; break;
+        case "ml": x += dx; w -= dx; break;
+        case "mr": w += dx; break;
+        case "bl": x += dx; w -= dx; h += dy; break;
+        case "bc": h += dy; break;
+        case "br": w += dx; h += dy; break;
       }
 
       setCrop(clampCrop({ x, y, w, h }, dw, dh));
@@ -98,20 +115,34 @@ export default function CropStep() {
     [displaySize, clampCrop]
   );
 
-  const onPointerUp = () => {
-    dragRef.current = null;
-  };
+  const onPointerUp = () => { dragRef.current = null; };
 
   const handleConfirm = async () => {
     if (!imgRef.current || !state.paintingPreviewUrl) return;
-    const img = imgRef.current;
+
+    let sourceImg = imgRef.current;
+    let tempUrl: string | null = null;
+
+    if (rotation !== 0) {
+      tempUrl = await rotateImageToBlob(imgRef.current, rotation);
+      const rotImg = new Image();
+      await new Promise<void>((resolve) => {
+        rotImg.onload = () => resolve();
+        rotImg.src = tempUrl!;
+      });
+      sourceImg = rotImg;
+    }
+
     const blob = await cropImageToBlob(
-      img,
+      sourceImg,
       crop.x, crop.y, crop.w, crop.h,
-      img.naturalWidth, img.naturalHeight,
-      displaySize.w, displaySize.h
+      sourceImg.naturalWidth, sourceImg.naturalHeight,
+      displaySize.w, displaySize.h,
     );
+
+    if (tempUrl) URL.revokeObjectURL(tempUrl);
     if (state.croppedPaintingUrl) URL.revokeObjectURL(state.croppedPaintingUrl);
+
     const url = URL.createObjectURL(blob);
     setState({
       croppedPaintingBlob: blob,
@@ -119,6 +150,12 @@ export default function CropStep() {
       cropRect: { x: crop.x, y: crop.y, width: crop.w, height: crop.h },
     });
     goNext();
+  };
+
+  // When rotation changes, re-init crop box after image re-renders
+  const handleRotationChange = (deg: number) => {
+    setRotation(deg);
+    setImgLoaded(false); // force onLoad to re-fire via key trick below
   };
 
   const HANDLE_SIZE = 12;
@@ -136,6 +173,25 @@ export default function CropStep() {
         { id: "br", cx: crop.x + crop.w, cy: crop.y + crop.h },
       ]
     : [];
+
+  // Generate rotated preview url for display when rotation != 0
+  useEffect(() => {
+    if (!imgRef.current || !imgLoaded) return;
+    if (rotation === 0) { setRotatedUrl(null); return; }
+    let cancelled = false;
+    rotateImageToBlob(imgRef.current, rotation).then((url) => {
+      if (!cancelled) setRotatedUrl(url);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rotation]);
+
+  // When rotatedUrl changes, reset crop box dimensions
+  useEffect(() => {
+    if (rotatedUrl) setImgLoaded(false);
+  }, [rotatedUrl]);
+
+  const displaySrc = rotatedUrl ?? (state.paintingPreviewUrl ?? "");
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
@@ -155,27 +211,26 @@ export default function CropStep() {
       {/* Crop canvas */}
       <div
         ref={containerRef}
-        className="relative w-full mb-8 select-none"
+        className="relative w-full mb-4 select-none"
         style={{ touchAction: "none" }}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          key={displaySrc}
           ref={imgRef}
-          src={state.paintingPreviewUrl ?? ""}
+          src={displaySrc}
           alt="Painting to crop"
           className="w-full block"
-          onLoad={() => setImgLoaded(true)}
+          onLoad={() => { setImgLoaded(true); initCropBox(); }}
           draggable={false}
         />
 
         {imgLoaded && (
           <div className="absolute inset-0">
-            {/* Dark overlay outside crop */}
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{ position: "absolute", top: 0, left: 0 }}
               width={displaySize.w}
               height={displaySize.h}
             >
@@ -185,42 +240,20 @@ export default function CropStep() {
                   <rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="black" />
                 </mask>
               </defs>
-              <rect
-                width="100%"
-                height="100%"
-                fill="rgba(0,0,0,0.45)"
-                mask="url(#crop-mask)"
-              />
-              {/* Crop border */}
-              <rect
-                x={crop.x}
-                y={crop.y}
-                width={crop.w}
-                height={crop.h}
-                fill="none"
-                stroke="white"
-                strokeWidth="1.5"
-              />
-              {/* Rule of thirds grid */}
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#crop-mask)" />
+              <rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="none" stroke="white" strokeWidth="1.5" />
               <line x1={crop.x + crop.w / 3} y1={crop.y} x2={crop.x + crop.w / 3} y2={crop.y + crop.h} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               <line x1={crop.x + (crop.w * 2) / 3} y1={crop.y} x2={crop.x + (crop.w * 2) / 3} y2={crop.y + crop.h} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
               <line x1={crop.x} y1={crop.y + crop.h / 3} x2={crop.x + crop.w} y2={crop.y + crop.h / 3} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-              <line x1={crop.x} y1={crop.y + (crop.h * 2) / 3} x2={crop.x + crop.w} y2={crop.y + (crop.h * 2) / 3} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+              <line x1={crop.x} y1={crop.y + (crop.h * 2) / 3} x2={crop.x + crop.w} y2={crop.y + crop.h / 3} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
             </svg>
 
-            {/* Move handle — invisible overlay on crop area */}
             <div
               className="absolute cursor-move"
-              style={{
-                left: crop.x,
-                top: crop.y,
-                width: crop.w,
-                height: crop.h,
-              }}
+              style={{ left: crop.x, top: crop.y, width: crop.w, height: crop.h }}
               onPointerDown={(e) => onPointerDown(e, "move")}
             />
 
-            {/* Corner/edge handles */}
             {handles.map(({ id, cx, cy }) => (
               <div
                 key={id}
@@ -240,6 +273,26 @@ export default function CropStep() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Rotation slider */}
+      <div className="mb-8 flex items-center gap-3">
+        <span className="text-xs tracking-widest uppercase shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+          {t("rotateLabel")}
+        </span>
+        <input
+          type="range"
+          min="-180"
+          max="180"
+          step="1"
+          value={rotation}
+          onChange={(e) => handleRotationChange(Number(e.target.value))}
+          className="flex-1"
+          style={{ accentColor: "var(--primary)" }}
+        />
+        <span className="text-xs font-mono w-10 text-right shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+          {rotation}°
+        </span>
       </div>
 
       <button

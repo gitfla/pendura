@@ -78,6 +78,17 @@ export default function RenderStep() {
     a.click();
   };
 
+  if (loading) {
+    return (
+      <div className="px-6 py-8 max-w-lg mx-auto w-full flex flex-col items-center justify-center" style={{ minHeight: "60vh" }}>
+        <div className="mb-6 text-4xl" style={{ color: "var(--outline-variant)" }}>⧖</div>
+        <p className="text-xs tracking-widest uppercase text-center" style={{ color: "var(--on-surface-variant)" }}>
+          {t("loading")}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
       <p className="text-xs tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
@@ -89,14 +100,6 @@ export default function RenderStep() {
       <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--on-surface-variant)" }}>
         {t("subtitle")}
       </p>
-
-      {loading && (
-        <div className="mb-8 flex items-center justify-center" style={{ minHeight: "200px", backgroundColor: "var(--surface-container-low)" }}>
-          <p className="text-xs tracking-widest uppercase" style={{ color: "var(--on-surface-variant)" }}>
-            {t("loading")}
-          </p>
-        </div>
-      )}
 
       {resultUrl && (
         <div className="mb-8">

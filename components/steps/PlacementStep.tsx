@@ -67,19 +67,6 @@ export default function PlacementStep() {
         )}
       </div>
 
-      {/* Thumbnail pair */}
-      <div className="flex items-center gap-3 mb-8">
-        {state.wallPreviewUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={state.wallPreviewUrl} alt="Wall" className="w-16 h-16 object-cover" />
-        )}
-        <span style={{ color: "var(--outline-variant)" }}>+</span>
-        {state.croppedPaintingUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={state.croppedPaintingUrl} alt="Painting" className="w-16 h-16 object-cover" />
-        )}
-      </div>
-
       <button
         onClick={goPrev}
         className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"

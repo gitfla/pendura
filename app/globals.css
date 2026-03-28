@@ -27,6 +27,7 @@ body {
   color: var(--on-surface);
   font-family: "Manrope", sans-serif;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
 .font-serif {
