@@ -110,7 +110,7 @@ export default function KonvaPlacement({
         <Transformer
           ref={trRef}
           rotateEnabled
-          keepRatio={false}
+          keepRatio
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 20 || newBox.height < 20) return oldBox;
             return newBox;
