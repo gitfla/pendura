@@ -53,6 +53,9 @@
     "title": "Recortar a Obra",
     "subtitle": "Recorte bem próximo à borda externa completa da peça que deseja colocar na parede.",
     "instruction": "Arraste os cantos para ajustar a área de corte.",
+    "modeRectangle": "Retangular",
+    "modePerspective": "4 Cantos",
+    "perspectiveInstruction": "Arraste os cantos para delinear as bordas da obra.",
     "rotateLabel": "Girar",
     "confirmButton": "Confirmar Recorte",
     "previousButton": "Passo Anterior"

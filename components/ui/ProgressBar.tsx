@@ -1,26 +1,73 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
-import { STEP_INDEX } from "@/lib/types";
+import { Step, STEP_INDEX } from "@/lib/types";
 
-const SEGMENTS = 6;
+type SegmentItem = {
+  step: Step;
+  labelKey: "wall" | "art" | "crop" | "place" | "render";
+};
+
+// Perspective step doesn't have its own segment — it maps to "place"
+const SEGMENTS: SegmentItem[] = [
+  { step: "wall", labelKey: "wall" },
+  { step: "painting", labelKey: "art" },
+  { step: "crop", labelKey: "crop" },
+  { step: "placement", labelKey: "place" },
+  { step: "render", labelKey: "render" },
+];
 
 export default function ProgressBar() {
-  const { currentStep } = useProject();
-  const filled = STEP_INDEX[currentStep] + 1;
+  const t = useTranslations("nav");
+  const { currentStep, maxReachedStep, goToStep } = useProject();
+
+  const effectiveStep = currentStep === "perspective" ? "placement" : currentStep;
 
   return (
-    <div className="flex gap-1 px-4 pt-3 pb-2" style={{ backgroundColor: "var(--surface)" }}>
-      {Array.from({ length: SEGMENTS }).map((_, i) => (
-        <div
-          key={i}
-          className="h-[2px] flex-1 transition-colors duration-300"
-          style={{
-            backgroundColor:
-              i < filled ? "var(--primary)" : "var(--surface-dim)",
-          }}
-        />
-      ))}
-    </div>
+    <nav
+      className="flex gap-1 px-4 pt-3 pb-1"
+      style={{ backgroundColor: "var(--surface)" }}
+    >
+      {SEGMENTS.map(({ step, labelKey }) => {
+        const isActive = effectiveStep === step;
+        const isReachable = STEP_INDEX[step] <= STEP_INDEX[maxReachedStep];
+        const isFilled = STEP_INDEX[step] <= STEP_INDEX[effectiveStep];
+
+        return (
+          <button
+            key={step}
+            onClick={() => isReachable && goToStep(step)}
+            disabled={!isReachable}
+            className="flex-1 flex flex-col items-center gap-1 transition-opacity"
+            style={{
+              cursor: isReachable ? "pointer" : "default",
+              opacity: isReachable ? 1 : 0.4,
+            }}
+          >
+            <div
+              className="w-full h-[2px] transition-colors duration-300"
+              style={{
+                backgroundColor: isFilled
+                  ? "var(--primary)"
+                  : "var(--surface-dim)",
+              }}
+            />
+            <span
+              className="text-[9px] font-medium tracking-widest uppercase transition-colors"
+              style={{
+                color: isActive
+                  ? "var(--primary)"
+                  : isReachable
+                    ? "var(--on-surface-variant)"
+                    : "var(--outline-variant)",
+              }}
+            >
+              {t(labelKey)}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }

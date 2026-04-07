@@ -53,6 +53,9 @@
     "title": "Crop the Painting",
     "subtitle": "Crop tightly around the full outer edge of the piece you want to place on the wall.",
     "instruction": "Drag the corners to adjust the crop area.",
+    "modeRectangle": "Rectangle",
+    "modePerspective": "4-Corner",
+    "perspectiveInstruction": "Drag the corners to outline the painting edges.",
     "rotateLabel": "Rotate",
     "confirmButton": "Confirm Crop",
     "previousButton": "Previous Step"

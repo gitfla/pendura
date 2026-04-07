@@ -4,11 +4,12 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
 import { Quad, Point } from "@/lib/types";
-import { isQuadConvex } from "@/lib/geometry";
+import { isQuadConvex, rectToQuad } from "@/lib/geometry";
 
 type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
 
 const HANDLE_SIZE = 24;
+const HIT_RADIUS = 24;
 
 
 
@@ -112,10 +113,9 @@ export default function PerspectiveStep() {
 
   const hitTest = (pos: Point): HandleKey | null => {
     if (!displayQuad) return null;
-    const hs = HANDLE_SIZE / 2;
     for (const key of ["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]) {
       const p = displayQuad[key];
-      if (Math.abs(pos.x - p.x) <= hs && Math.abs(pos.y - p.y) <= hs) {
+      if (Math.abs(pos.x - p.x) <= HIT_RADIUS && Math.abs(pos.y - p.y) <= HIT_RADIUS) {
         return key;
       }
     }
@@ -168,10 +168,23 @@ export default function PerspectiveStep() {
 
   const handleReset = () => {
     if (!state.placement || !wallImg) return;
-    // Quad is in canvas display coords — set directly as displayQuad
-    const prev = state.placement;
-    setState({ placement: { ...prev, mode: "perspective" } });
-    setDisplayQuad(prev.quad);
+    // Reconstruct the original rectangle from the quad's bounding box + stored rotation
+    const q = state.placement.quad;
+    const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
+    const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    const rectQuad = rectToQuad(minX, minY, maxX - minX, maxY - minY, state.placement.rotationDeg);
+    setDisplayQuad(rectQuad);
+    setState({
+      placement: {
+        ...state.placement,
+        mode: "perspective",
+        quad: rectQuad,
+      },
+    });
   };
 
   const handleContinue = () => {
