@@ -5,13 +5,45 @@ import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
 import { SHADOW_DEFAULTS } from "@/lib/constants";
 
-function getImageNaturalSize(url: string): Promise<{ width: number; height: number }> {
+const MAX_UPLOAD_DIM = 2048;
+
+function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = url;
   });
+}
+
+/** Downscale an image blob so its longest side is at most maxDim. Returns { blob, scale }. */
+async function downscaleBlob(
+  source: Blob,
+  maxDim: number,
+): Promise<{ blob: Blob; scale: number }> {
+  const url = URL.createObjectURL(source);
+  try {
+    const img = await loadImage(url);
+    const { naturalWidth: w, naturalHeight: h } = img;
+    if (w <= maxDim && h <= maxDim) return { blob: source, scale: 1 };
+
+    const ratio = maxDim / Math.max(w, h);
+    const nw = Math.round(w * ratio);
+    const nh = Math.round(h * ratio);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = nw;
+    canvas.height = nh;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0, nw, nh);
+
+    const outBlob = await new Promise<Blob>((res, rej) => {
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/jpeg", 0.85);
+    });
+    return { blob: outBlob, scale: ratio };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export default function RenderStep() {
@@ -29,24 +61,30 @@ export default function RenderStep() {
     setResultUrl(null);
 
     try {
-      const wallNaturalSize = await getImageNaturalSize(state.wallPreviewUrl!);
-      const scaleX = wallNaturalSize.width / state.placement.canvasWidth;
-      const scaleY = wallNaturalSize.height / state.placement.canvasHeight;
+      const wallImg = await loadImage(state.wallPreviewUrl!);
+      const scaleX = wallImg.naturalWidth / state.placement.canvasWidth;
+      const scaleY = wallImg.naturalHeight / state.placement.canvasHeight;
 
-      const rawQuad = state.placement.quad;
+      // Downscale images to fit within Vercel's payload limit
+      const { blob: wallBlob, scale: wallScale } = await downscaleBlob(state.wallImage, MAX_UPLOAD_DIM);
+      const { blob: paintingBlob } = await downscaleBlob(state.croppedPaintingBlob, MAX_UPLOAD_DIM);
+
+      // Scale quad: display → natural coords → downscaled coords
+      const q = state.placement.quad;
+      const sx = scaleX * wallScale;
+      const sy = scaleY * wallScale;
       const scaledQuad = {
-        topLeft:     { x: rawQuad.topLeft.x     * scaleX, y: rawQuad.topLeft.y     * scaleY },
-        topRight:    { x: rawQuad.topRight.x    * scaleX, y: rawQuad.topRight.y    * scaleY },
-        bottomRight: { x: rawQuad.bottomRight.x * scaleX, y: rawQuad.bottomRight.y * scaleY },
-        bottomLeft:  { x: rawQuad.bottomLeft.x  * scaleX, y: rawQuad.bottomLeft.y  * scaleY },
+        topLeft:     { x: q.topLeft.x     * sx, y: q.topLeft.y     * sy },
+        topRight:    { x: q.topRight.x    * sx, y: q.topRight.y    * sy },
+        bottomRight: { x: q.bottomRight.x * sx, y: q.bottomRight.y * sy },
+        bottomLeft:  { x: q.bottomLeft.x  * sx, y: q.bottomLeft.y  * sy },
       };
 
       const formData = new FormData();
-      formData.append("wallImage", state.wallImage);
-      formData.append("paintingImage", state.croppedPaintingBlob, "painting.png");
+      formData.append("wallImage", wallBlob, "wall.jpg");
+      formData.append("paintingImage", paintingBlob, "painting.jpg");
       formData.append("quad", JSON.stringify(scaledQuad));
       formData.append("shadow", JSON.stringify(SHADOW_DEFAULTS));
-      formData.append("format", "png");
 
       const res = await fetch("/api/render", { method: "POST", body: formData });
 
