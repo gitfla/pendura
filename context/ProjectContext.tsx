@@ -13,6 +13,8 @@ const initialState: ProjectState = {
   croppedPaintingUrl: null,
   cropRect: null,
   placement: null,
+  calibration: null,
+  paintingDimensions: null,
 };
 
 type ProjectContextType = {

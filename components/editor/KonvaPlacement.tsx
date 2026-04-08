@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Stage, Layer, Image as KonvaImage, Transformer } from "react-konva";
 import Konva from "konva";
 
@@ -9,6 +9,10 @@ type Props = {
   paintingUrl: string;
   containerWidth: number;
   onTransformChange: (x: number, y: number, width: number, height: number, rotation: number, canvasWidth: number, canvasHeight: number) => void;
+};
+
+export type KonvaPlacementHandle = {
+  resizePainting: (width: number, height: number) => void;
 };
 
 function useImage(url: string): HTMLImageElement | null {
@@ -22,12 +26,10 @@ function useImage(url: string): HTMLImageElement | null {
   return img;
 }
 
-export default function KonvaPlacement({
-  wallUrl,
-  paintingUrl,
-  containerWidth,
-  onTransformChange,
-}: Props) {
+const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPlacement(
+  { wallUrl, paintingUrl, containerWidth, onTransformChange },
+  ref,
+) {
   const wallImg = useImage(wallUrl);
   const paintingImg = useImage(paintingUrl);
   const paintingRef = useRef<Konva.Image>(null);
@@ -73,6 +75,29 @@ export default function KonvaPlacement({
       stageHeight,
     );
   };
+
+  useImperativeHandle(ref, () => ({
+    resizePainting(newW: number, newH: number) {
+      const node = paintingRef.current;
+      if (!node) return;
+      const oldW = node.width() * node.scaleX();
+      const oldH = node.height() * node.scaleY();
+      const cx = node.x() + oldW / 2;
+      const cy = node.y() + oldH / 2;
+      console.log("[KonvaPlacement] resizePainting", {
+        oldSize: { w: oldW, h: oldH },
+        newSize: { w: newW, h: newH },
+        center: { cx, cy },
+        stageSize: { w: containerWidth, h: stageHeight },
+      });
+      node.scaleX(newW / node.width());
+      node.scaleY(newH / node.height());
+      node.x(cx - newW / 2);
+      node.y(cy - newH / 2);
+      trRef.current?.getLayer()?.batchDraw();
+      emitChange();
+    },
+  }));
 
   if (!wallImg || !paintingImg) {
     return (
@@ -120,4 +145,6 @@ export default function KonvaPlacement({
     </Stage>
     </div>
   );
-}
+});
+
+export default KonvaPlacement;

@@ -13,6 +13,8 @@ type StoredSession = {
   croppedPaintingType: string | null;
   cropRect: ProjectState["cropRect"];
   placement: ProjectState["placement"];
+  calibration: ProjectState["calibration"];
+  paintingDimensions: ProjectState["paintingDimensions"];
   currentStep: Step;
   maxReachedStep: Step;
 };
@@ -71,6 +73,8 @@ export async function serializeSession(
       croppedPaintingType: state.croppedPaintingBlob?.type ?? null,
       cropRect: state.cropRect,
       placement: state.placement,
+      calibration: state.calibration,
+      paintingDimensions: state.paintingDimensions,
       currentStep,
       maxReachedStep,
     });
@@ -111,6 +115,8 @@ export async function deserializeSession(): Promise<{
           : null,
         cropRect: data.cropRect,
         placement: data.placement,
+        calibration: data.calibration,
+        paintingDimensions: data.paintingDimensions,
       },
       currentStep: data.currentStep,
       maxReachedStep: data.maxReachedStep,

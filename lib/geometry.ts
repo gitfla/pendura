@@ -1,5 +1,9 @@
 import { Point, Quad } from "./types";
 
+export function euclideanDistance(a: Point, b: Point): number {
+  return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
+}
+
 export function rectToQuad(
   x: number,
   y: number,

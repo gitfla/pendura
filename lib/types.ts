@@ -23,6 +23,20 @@ export type PlacementState = {
   canvasHeight: number;
 };
 
+export type CalibrationState = {
+  pointA: Point;
+  pointB: Point;
+  realDistance: number;
+  unit: "cm" | "in";
+  pxPerUnit: number;
+};
+
+export type PaintingDimensions = {
+  width: number;
+  height: number;
+  unit: "cm" | "in";
+};
+
 export type ProjectState = {
   wallImage: File | null;
   wallPreviewUrl: string | null;
@@ -32,6 +46,8 @@ export type ProjectState = {
   croppedPaintingUrl: string | null;
   cropRect: CropRect | null;
   placement: PlacementState | null;
+  calibration: CalibrationState | null;
+  paintingDimensions: PaintingDimensions | null;
 };
 
 export type Step =
