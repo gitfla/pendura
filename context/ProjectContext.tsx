@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { ProjectState, Step, STEP_INDEX } from "@/lib/types";
+import { serializeSession, deserializeSession } from "@/lib/sessionPersist";
 
 const initialState: ProjectState = {
   wallImage: null,
@@ -23,6 +24,7 @@ type ProjectContextType = {
   goNext: () => void;
   goPrev: () => void;
   reset: () => void;
+  persistForLocaleSwitch: () => Promise<void>;
 };
 
 const ProjectContext = createContext<ProjectContextType | null>(null);
@@ -40,6 +42,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [state, setStateRaw] = useState<ProjectState>(initialState);
   const [currentStep, setCurrentStep] = useState<Step>("wall");
   const [maxReachedStep, setMaxReachedStep] = useState<Step>("wall");
+
+  // Restore session from IndexedDB on mount (after locale switch)
+  useEffect(() => {
+    deserializeSession().then((restored) => {
+      if (restored) {
+        setStateRaw(restored.state);
+        setCurrentStep(restored.currentStep);
+        setMaxReachedStep(restored.maxReachedStep);
+      }
+    });
+  }, []);
 
   const setState = (updates: Partial<ProjectState>) => {
     setStateRaw((prev) => ({ ...prev, ...updates }));
@@ -85,6 +98,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     scrollToTop();
   };
 
+  const persistForLocaleSwitch = useCallback(async () => {
+    await serializeSession(state, currentStep, maxReachedStep);
+  }, [state, currentStep, maxReachedStep]);
+
   return (
     <ProjectContext.Provider
       value={{
@@ -96,6 +113,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         goNext,
         goPrev,
         reset,
+        persistForLocaleSwitch,
       }}
     >
       {children}

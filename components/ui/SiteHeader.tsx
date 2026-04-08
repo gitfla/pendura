@@ -2,13 +2,16 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter, usePathname } from "next/navigation";
+import { useProject } from "@/context/ProjectContext";
 
 export default function SiteHeader() {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
+  const { persistForLocaleSwitch } = useProject();
 
-  const handleLangSwitch = () => {
+  const handleLangSwitch = async () => {
+    await persistForLocaleSwitch();
     const isEn = pathname.startsWith("/en");
     const newLocale = isEn ? "pt" : "en";
     const newPath = pathname.replace(/^\/(en|pt)/, `/${newLocale}`);
