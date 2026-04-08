@@ -45,12 +45,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setStateRaw((prev) => ({ ...prev, ...updates }));
   };
 
+  const scrollToTop = () => setTimeout(() => window.scrollTo(0, 0), 0);
+
   const goToStep = (step: Step) => {
     // Allow navigating to any already-reached step, or skipping forward (e.g. skip perspective → render)
     setCurrentStep(step);
     if (STEP_INDEX[step] > STEP_INDEX[maxReachedStep]) {
       setMaxReachedStep(step);
     }
+    scrollToTop();
   };
 
   const goNext = () => {
@@ -62,6 +65,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setMaxReachedStep(next);
       }
     }
+    scrollToTop();
   };
 
   const goPrev = () => {
@@ -69,6 +73,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (idx > 0) {
       setCurrentStep(STEPS_ORDER[idx - 1]);
     }
+    scrollToTop();
   };
 
   const reset = () => {
@@ -77,6 +82,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     setStateRaw(initialState);
     setCurrentStep("wall");
     setMaxReachedStep("wall");
+    scrollToTop();
   };
 
   return (

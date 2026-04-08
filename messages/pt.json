@@ -8,7 +8,6 @@
     "switchLang": "EN"
   },
   "wall": {
-    "step": "Passo 1 de 6",
     "title": "Sua Parede",
     "subtitle": "Forneça uma foto clara da parede onde deseja pendurar a obra de arte.",
     "selectButton": "Selecionar Foto da Parede",
@@ -29,7 +28,6 @@
     }
   },
   "painting": {
-    "step": "Passo 2 de 6",
     "title": "A Obra de Arte",
     "subtitle": "Envie uma foto da obra que deseja colocar na sua parede.",
     "confirmed": "Parede Confirmada",
@@ -49,7 +47,6 @@
     }
   },
   "crop": {
-    "step": "Passo 3 de 6",
     "title": "Recortar a Obra",
     "subtitle": "Recorte bem próximo à borda externa completa da peça que deseja colocar na parede.",
     "instruction": "Arraste os cantos para ajustar a área de corte.",
@@ -61,7 +58,6 @@
     "previousButton": "Passo Anterior"
   },
   "placement": {
-    "step": "Passo 4 de 6",
     "title": "Posicionar na Parede",
     "subtitle": "Arraste, redimensione e gire a obra para posicioná-la na parede.",
     "resetButton": "Redefinir Posição",
@@ -70,7 +66,6 @@
     "previousButton": "Passo Anterior"
   },
   "perspective": {
-    "step": "Passo 5 de 6",
     "title": "Ajustar Cantos",
     "subtitle": "Arraste cada canto independentemente para corresponder à perspectiva da parede.",
     "resetButton": "Redefinir para Retângulo",
@@ -78,7 +73,6 @@
     "previousButton": "Passo Anterior"
   },
   "render": {
-    "step": "Passo 6 de 6",
     "title": "Sua Obra Está Pronta",
     "subtitle": "Revise a composição final e baixe sua imagem.",
     "renderButton": "Renderizar",

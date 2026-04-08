@@ -41,9 +41,6 @@ export default function WallUploadStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      <p className="text-xs tracking-widest uppercase mb-6" style={{ color: "var(--on-surface-variant)" }}>
-        {t("step")}
-      </p>
       <h1 className="font-serif text-4xl leading-tight mb-4" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>

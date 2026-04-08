@@ -261,9 +261,6 @@ export default function CropStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      <p className="text-xs tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
-        {t("step")}
-      </p>
       <h1 className="font-serif text-4xl leading-tight mb-3" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>
@@ -271,56 +268,10 @@ export default function CropStep() {
         {t("subtitle")}
       </p>
 
-      {/* Mode toggle */}
-      <div className="flex mb-4 rounded overflow-hidden" style={{ border: "1px solid var(--outline-variant)" }}>
-        <button
-          onClick={() => switchMode("rectangle")}
-          className="flex-1 py-2 text-xs tracking-widest uppercase font-medium transition-colors"
-          style={{
-            backgroundColor: isRect ? "var(--primary)" : "transparent",
-            color: isRect ? "var(--on-primary)" : "var(--on-surface-variant)",
-          }}
-        >
-          {t("modeRectangle")}
-        </button>
-        <button
-          onClick={() => switchMode("perspective")}
-          className="flex-1 py-2 text-xs tracking-widest uppercase font-medium transition-colors"
-          style={{
-            backgroundColor: isPersp ? "var(--primary)" : "transparent",
-            color: isPersp ? "var(--on-primary)" : "var(--on-surface-variant)",
-          }}
-        >
-          {t("modePerspective")}
-        </button>
-      </div>
-
-      {/* Rotation slider — rectangle mode only */}
-      {isRect && (
-        <div className="mb-4 flex items-center gap-3">
-          <span className="text-xs tracking-widest uppercase shrink-0" style={{ color: "var(--on-surface-variant)" }}>
-            {t("rotateLabel")}
-          </span>
-          <input
-            type="range"
-            min="-180"
-            max="180"
-            step="1"
-            value={rotation}
-            onChange={(e) => setRotation(Number(e.target.value))}
-            className="flex-1"
-            style={{ accentColor: "var(--primary)" }}
-          />
-          <span className="text-xs font-mono w-10 text-right shrink-0" style={{ color: "var(--on-surface-variant)" }}>
-            {rotation}°
-          </span>
-        </div>
-      )}
-
       {/* Crop canvas */}
       <div
         ref={containerRef}
-        className="relative w-full mb-8 select-none overflow-hidden"
+        className="relative w-full mb-4 select-none overflow-hidden"
         style={{ touchAction: "none", backgroundColor: "var(--surface-container)" }}
         onPointerMove={isRect ? onRectPointerMove : onPerspPointerMove}
         onPointerUp={isRect ? onRectPointerUp : onPerspPointerUp}
@@ -438,23 +389,68 @@ export default function CropStep() {
         )}
       </div>
 
-      <button
-        onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
-        style={{ color: "var(--on-surface-variant)" }}
-      >
-        <span>←</span>
-        <span>{t("previousButton")}</span>
-      </button>
+      {/* Mode toggle */}
+      <div className="flex mb-4 rounded overflow-hidden" style={{ border: "1px solid var(--outline-variant)" }}>
+        <button
+          onClick={() => switchMode("rectangle")}
+          className="flex-1 py-2 text-xs tracking-widest uppercase font-medium transition-colors"
+          style={{
+            backgroundColor: isRect ? "var(--primary)" : "transparent",
+            color: isRect ? "var(--on-primary)" : "var(--on-surface-variant)",
+          }}
+        >
+          {t("modeRectangle")}
+        </button>
+        <button
+          onClick={() => switchMode("perspective")}
+          className="flex-1 py-2 text-xs tracking-widest uppercase font-medium transition-colors"
+          style={{
+            backgroundColor: isPersp ? "var(--primary)" : "transparent",
+            color: isPersp ? "var(--on-primary)" : "var(--on-surface-variant)",
+          }}
+        >
+          {t("modePerspective")}
+        </button>
+      </div>
+
+      {/* Rotation slider — rectangle mode only */}
+      {isRect && (
+        <div className="mb-4 flex items-center gap-3">
+          <span className="text-xs tracking-widest uppercase shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+            {t("rotateLabel")}
+          </span>
+          <input
+            type="range"
+            min="-180"
+            max="180"
+            step="1"
+            value={rotation}
+            onChange={(e) => setRotation(Number(e.target.value))}
+            className="flex-1"
+            style={{ accentColor: "var(--primary)" }}
+          />
+          <span className="text-xs font-mono w-10 text-right shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+            {rotation}°
+          </span>
+        </div>
+      )}
 
       <button
         onClick={handleConfirm}
         disabled={!imgLoaded}
-        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 disabled:opacity-40"
+        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3 disabled:opacity-40"
         style={{ background: `linear-gradient(to right, var(--primary), var(--primary-dim))`, color: "var(--on-primary)" }}
       >
-        <span>{t("confirmButton")}</span>
-        <span>→</span>
+        {t("confirmButton")}
+      </button>
+
+      <button
+        onClick={goPrev}
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        style={{ color: "var(--on-surface-variant)" }}
+      >
+        <span>←</span>
+        <span>{t("previousButton")}</span>
       </button>
     </div>
   );

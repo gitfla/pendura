@@ -193,9 +193,6 @@ export default function PerspectiveStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      <p className="text-xs tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
-        {t("step")}
-      </p>
       <h1 className="font-serif text-4xl leading-tight mb-3" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>
@@ -235,32 +232,22 @@ export default function PerspectiveStep() {
       </div>
 
       <button
-        onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
-        style={{ color: "var(--on-surface-variant)" }}
-      >
-        <span>←</span>
-        <span>{t("previousButton")}</span>
-      </button>
-
-      <button
-        onClick={handleReset}
-        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
-        style={{ border: "1px solid var(--outline-variant)", color: "var(--on-surface-variant)" }}
-      >
-        {t("resetButton")}
-      </button>
-
-      <button
         onClick={handleContinue}
-        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6"
+        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3"
         style={{
           background: `linear-gradient(to right, var(--primary), var(--primary-dim))`,
           color: "var(--on-primary)",
         }}
       >
-        <span>{t("continueButton")}</span>
-        <span>→</span>
+        {t("continueButton")}
+      </button>
+
+      <button
+        onClick={() => goPrev()}
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        style={{ color: "var(--on-surface-variant)" }}
+      >
+        {t("resetButton")}
       </button>
     </div>
   );

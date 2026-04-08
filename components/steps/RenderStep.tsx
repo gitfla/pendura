@@ -129,9 +129,6 @@ export default function RenderStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      <p className="text-xs tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
-        {t("step")}
-      </p>
       <h1 className="font-serif text-4xl leading-tight mb-3" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>
@@ -152,15 +149,6 @@ export default function RenderStep() {
         </div>
       )}
 
-      <button
-        onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
-        style={{ color: "var(--on-surface-variant)" }}
-      >
-        <span>←</span>
-        <span>{t("previousButton")}</span>
-      </button>
-
       {resultUrl && (
         <>
           <button
@@ -173,7 +161,7 @@ export default function RenderStep() {
           </button>
           <button
             onClick={reset}
-            className="w-full py-3 text-xs tracking-widest uppercase"
+            className="w-full py-3 text-xs tracking-widest uppercase mb-3"
             style={{ color: "var(--outline-variant)" }}
           >
             {t("startOverButton")}
@@ -185,13 +173,22 @@ export default function RenderStep() {
         <button
           onClick={handleRender}
           disabled={loading}
-          className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6"
+          className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 mb-3"
           style={{ background: `linear-gradient(to right, var(--primary), var(--primary-dim))`, color: "var(--on-primary)" }}
         >
           <span>{t("renderButton")}</span>
           <span>→</span>
         </button>
       )}
+
+      <button
+        onClick={goPrev}
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        style={{ color: "var(--on-surface-variant)" }}
+      >
+        <span>←</span>
+        <span>{t("previousButton")}</span>
+      </button>
     </div>
   );
 }

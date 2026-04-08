@@ -39,10 +39,6 @@ export default function PaintingUploadStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      <p className="text-xs tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
-        {t("step")}
-      </p>
-
       {state.wallPreviewUrl && (
         <div className="flex items-center gap-3 mb-6 p-3" style={{ backgroundColor: "var(--surface-container-low)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
