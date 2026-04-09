@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&amp;family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#6e5b4d",
+                    "surface-dim": "#d4dcd5",
+                    "primary-container": "#d1e4ff",
+                    "on-secondary-fixed-variant": "#515d62",
+                    "inverse-primary": "#d1e4ff",
+                    "outline-variant": "#adb3ae",
+                    "error": "#9f403d",
+                    "on-secondary-fixed": "#354146",
+                    "on-primary": "#f5f8ff",
+                    "inverse-on-surface": "#9c9d9b",
+                    "on-surface-variant": "#5a615c",
+                    "surface-variant": "#dee4de",
+                    "on-error": "#fff7f6",
+                    "on-primary-container": "#415369",
+                    "primary": "#4e6076",
+                    "tertiary-dim": "#625042",
+                    "surface-container-high": "#e5e9e4",
+                    "tertiary-container": "#fee3d1",
+                    "secondary-dim": "#49555a",
+                    "inverse-surface": "#0d0f0d",
+                    "primary-fixed": "#d1e4ff",
+                    "on-primary-fixed-variant": "#4b5d73",
+                    "surface-container": "#ecefea",
+                    "background": "#f9f9f6",
+                    "outline": "#767c77",
+                    "on-tertiary-container": "#645244",
+                    "surface-bright": "#f9f9f6",
+                    "secondary-fixed-dim": "#cad6dc",
+                    "surface": "#f9f9f6",
+                    "surface-container-low": "#f3f4f0",
+                    "secondary": "#556166",
+                    "on-tertiary-fixed": "#504032",
+                    "tertiary-fixed-dim": "#efd5c3",
+                    "primary-fixed-dim": "#c3d6f0",
+                    "primary-dim": "#42546a",
+                    "on-background": "#2e3430",
+                    "error-container": "#fe8983",
+                    "on-tertiary": "#fff7f4",
+                    "surface-container-highest": "#dee4de",
+                    "secondary-container": "#d8e4ea",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#485458",
+                    "on-error-container": "#752121",
+                    "on-secondary": "#f1faff",
+                    "tertiary": "#6e5b4d",
+                    "tertiary-fixed": "#fee3d1",
+                    "surface-tint": "#4e6076",
+                    "secondary-fixed": "#d8e4ea",
+                    "on-surface": "#2e3430",
+                    "on-primary-fixed": "#2f4156",
+                    "error-dim": "#4e0309"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+        }
+        .canvas-shadow {
+            box-shadow: 0 40px 60px -20px rgba(46, 52, 48, 0.06);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#f9f9f6]/80 dark:bg-[#1a1c1a]/80 backdrop-blur-xl">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="cursor-pointer transition-transform active:scale-95 text-[#4e6076] dark:text-[#a5b9d1]">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</div>
+<h1 class="font-['Noto_Serif'] text-lg tracking-wide text-[#4e6076] dark:text-[#a5b9d1]">Step 4: Curate Space</h1>
+<div class="w-6"></div> <!-- Spacer for centering -->
+</div>
+<div class="bg-[#ecefea] dark:bg-[#2e3430] h-[1px] w-full"></div>
+</nav>
+<main class="pt-24 pb-32 px-6 max-w-4xl mx-auto flex flex-col gap-12">
+<!-- Instructional Text Section -->
+<section class="max-w-xl">
+<h2 class="font-headline text-3xl mb-4 text-on-surface">Refine your placement.</h2>
+<p class="font-body text-on-surface-variant leading-relaxed">
+                Use exact dimensions or adjust corners for a perfect perspective. Drag the artwork to position it on your wall, or use the tools below for technical precision.
+            </p>
+</section>
+<!-- Central Curation Canvas -->
+<div class="relative w-full aspect-[4/5] md:aspect-video bg-surface-container overflow-hidden">
+<img alt="Living room wall with empty space" class="absolute inset-0 w-full h-full object-cover grayscale-[20%] opacity-90" data-alt="a minimalist bright living room with a large empty limestone wall, soft side lighting from a tall window, neutral modern furniture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPap1Iia149-Ad5qJFD3_Yb6eRSkh_DwaFrs6ylVKforiDJiOIpivbe8HZYMQqStc-JP3gioOpRldtNhEpR74eu8iS7zg3K82JJ2QXdcF21hZ-Zom2ONK6aVT7PAbxTotUYyCrcsjnQQYisgqQDo293qw-U5hBFxnqHUfyXYHYd0WO17C9Gy9hRYPZ6VbpTml4rrZQGZ2DH7RlJUSElHRlxDDjZAx0dQ0XQofs3AeKtXqNRzYOTIHP9fGGbCLU2dXVH5zosp9bMg"/>
+<!-- Manipulatable Artwork Overlay -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="relative w-1/2 aspect-square canvas-shadow cursor-move group">
+<img alt="Abstract artwork" class="w-full h-full object-cover" data-alt="vibrant contemporary abstract painting with textured brushstrokes of deep blue, ochre, and muted clay tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd-zik2DCcoS2gv-18DnnqQwanSd-K6gRdjt4KAvMLHPdObCOZ-ZkZT3UELjokttGoeR3Ydf_Bq2qa0DrXOOVkVkwvsv7f5FHQnVZXloqOR7ISLk7ork-VJyKXgKuRAdAjW7jEinXrtzh444BCGwORwV4rAzAAP-PZOodj6lX7oRRuFAuV7bVZmj-atoej_XM73UXdhbNMs3dExqAfIgb2cAvQ1jsvzC6UC0FDTcnIEgCodph1uw6RtGDWM_G1lWxGdlalfeCTPw"/>
+<!-- Resizer Handles (Visual Only) -->
+<div class="absolute -top-1 -left-1 w-3 h-3 bg-primary"></div>
+<div class="absolute -top-1 -right-1 w-3 h-3 bg-primary"></div>
+<div class="absolute -bottom-1 -left-1 w-3 h-3 bg-primary"></div>
+<div class="absolute -bottom-1 -right-1 w-3 h-3 bg-primary"></div>
+<!-- Rotation Handle -->
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="w-px h-6 bg-primary"></div>
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="rotate_right">rotate_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- UI Overlay Labels -->
+<div class="absolute bottom-6 left-6 bg-surface-container-lowest/90 backdrop-blur px-4 py-2">
+<span class="font-label text-[0.65rem] uppercase tracking-widest font-bold text-on-surface-variant">Live Preview / AR Mode</span>
+</div>
+</div>
+<!-- Tool Selection Section (Replaces traditional BottomNavBar logic for this focused task) -->
+<div class="grid grid-cols-2 gap-px bg-outline-variant/20">
+<button class="bg-surface-container-low p-8 flex flex-col items-center justify-center gap-3 hover:bg-surface-container transition-colors group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="straighten">straighten</span>
+<span class="font-label text-[0.75rem] uppercase tracking-[0.15rem] font-bold text-primary">Set Exact Size</span>
+</button>
+<button class="bg-surface-container-low p-8 flex flex-col items-center justify-center gap-3 hover:bg-surface-container transition-colors group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform" data-icon="aspect_ratio">aspect_ratio</span>
+<span class="font-label text-[0.75rem] uppercase tracking-[0.15rem] font-bold text-primary">Adjust Corners</span>
+</button>
+</div>
+<!-- Primary Actions Container -->
+<div class="flex flex-col items-center gap-8 mt-4">
+<button class="w-full h-16 bg-primary hover:bg-primary-dim text-on-primary font-label text-[0.85rem] uppercase tracking-[0.2rem] font-extrabold transition-all active:scale-[0.98] flex items-center justify-center">
+                CONTINUE TO RENDER
+            </button>
+<a class="font-label text-[0.7rem] uppercase tracking-[0.1rem] font-bold text-on-surface-variant hover:text-primary transition-colors inline-block border-b border-transparent hover:border-primary pb-1" href="#">
+                Previous Step
+            </a>
+</div>
+</main>
+<!-- Bottom Navigation Shell (Filtered for transactional focus but following JSON structure for active state) -->
+<footer class="fixed bottom-0 w-full z-50 grid grid-cols-2 items-center h-20 px-4 bg-[#d4dcd5] dark:bg-[#1f2420] pointer-events-none opacity-20 hidden md:grid">
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#5c615c]">
+<span class="material-symbols-outlined" data-icon="straighten">straighten</span>
+<span class="font-['Manrope'] text-[0.75rem] uppercase tracking-[0.1rem] font-bold">Set Exact Size</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#adb3ae] dark:text-[#5c615c]">
+<span class="material-symbols-outlined" data-icon="aspect_ratio">aspect_ratio</span>
+<span class="font-['Manrope'] text-[0.75rem] uppercase tracking-[0.1rem] font-bold">Adjust Corners</span>
+</div>
+</footer>
+</body></html>

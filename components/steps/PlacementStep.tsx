@@ -7,8 +7,7 @@ import { rectToQuad } from "@/lib/geometry";
 import { Point, PaintingDimensions } from "@/lib/types";
 import dynamic from "next/dynamic";
 import type { KonvaPlacementHandle } from "@/components/editor/KonvaPlacement";
-import WallMeasure from "@/components/editor/WallMeasure";
-import PaintingSizeInput from "@/components/editor/PaintingSizeInput";
+import CalibrationOverlay from "@/components/editor/CalibrationOverlay";
 
 const KonvaPlacement = dynamic(() => import("@/components/editor/KonvaPlacement"), {
   ssr: false,
@@ -21,7 +20,7 @@ const KonvaPlacement = dynamic(() => import("@/components/editor/KonvaPlacement"
   ),
 });
 
-type CalibrationPhase = "off" | "measure" | "dimensions";
+type CalibrationPhase = "off" | "measure" | "distance" | "dimensions";
 
 export default function PlacementStep() {
   const t = useTranslations("placement");
@@ -38,19 +37,6 @@ export default function PlacementStep() {
     pxPerUnit: number;
   } | null>(null);
   const [toast, setToast] = useState(false);
-  const [pendingResize, setPendingResize] = useState<{ w: number; h: number } | null>(null);
-
-  // Apply deferred resize after Konva becomes visible again
-  useEffect(() => {
-    if (calibPhase === "off" && pendingResize) {
-      // Small delay to ensure Konva has re-rendered after becoming visible
-      const id = requestAnimationFrame(() => {
-        konvaRef.current?.resizePainting(pendingResize.w, pendingResize.h);
-        setPendingResize(null);
-      });
-      return () => cancelAnimationFrame(id);
-    }
-  }, [calibPhase, pendingResize]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -61,7 +47,15 @@ export default function PlacementStep() {
     return () => ro.disconnect();
   }, []);
 
-  const handleMeasureComplete = (
+  const stageHeight = konvaRef.current?.getStageHeight() ?? Math.round(containerWidth * 0.75);
+
+  const handleMeasureComplete = (pointA: Point, pointB: Point) => {
+    // Points picked — open distance modal
+    setPendingCalib({ pointA, pointB, realDistance: 0, unit: "cm", pxPerUnit: 0 });
+    setCalibPhase("distance");
+  };
+
+  const handleDistanceConfirm = (
     pointA: Point,
     pointB: Point,
     realDistance: number,
@@ -92,17 +86,8 @@ export default function PlacementStep() {
     const newW = dimW * pxPerUnit;
     const newH = dimH * pxPerUnit;
 
-    console.log("[Calibration] apply dimensions", {
-      inputDims: dims,
-      calibUnit: pendingCalib.unit,
-      convertedDims: { w: dimW, h: dimH },
-      pxPerUnit,
-      resultPx: { w: newW, h: newH },
-      containerWidth,
-    });
-
-    // Defer resize — Konva is hidden during calibration, apply after it's visible
-    setPendingResize({ w: newW, h: newH });
+    // Apply resize directly — KonvaPlacement is always mounted
+    konvaRef.current?.resizePainting(newW, newH);
 
     // Store calibration and painting dimensions
     setState({
@@ -137,17 +122,30 @@ export default function PlacementStep() {
         {t("subtitle")}
       </p>
 
-      <div ref={containerRef} className="w-full mb-4 overflow-hidden">
+      {/* Canvas area — always visible, overlay for calibration */}
+      <div
+        ref={containerRef}
+        className="w-full mb-4 relative overflow-hidden"
+      >
+        {/* Instant wall preview — prevents flash while Konva loads */}
+        {state.wallPreviewUrl && (
+          <img
+            src={state.wallPreviewUrl}
+            alt=""
+            className="w-full block"
+            style={{ pointerEvents: "none" }}
+          />
+        )}
         {containerWidth > 0 && (
-          <div style={{ display: calibPhase === "off" ? "block" : "none" }}>
+          <div style={{ position: "absolute", inset: 0 }}>
             <KonvaPlacement
               ref={konvaRef}
               wallUrl={state.wallPreviewUrl ?? ""}
               paintingUrl={state.croppedPaintingUrl ?? ""}
               containerWidth={containerWidth}
+              hidePainting={calibPhase !== "off"}
               onTransformChange={(x, y, width, height, rotation, canvasWidth, canvasHeight) => {
                 const quad = rectToQuad(x, y, width, height, rotation);
-                console.log("[Placement] quad in canvas coords", quad, "canvas:", canvasWidth, canvasHeight);
                 setState({
                   placement: {
                     mode: "basic",
@@ -162,72 +160,91 @@ export default function PlacementStep() {
           </div>
         )}
 
-        {calibPhase === "measure" && containerWidth > 0 && (
-          <WallMeasure
-            wallUrl={state.wallPreviewUrl ?? ""}
+        {calibPhase !== "off" && containerWidth > 0 && (
+          <CalibrationOverlay
+            phase={calibPhase}
             containerWidth={containerWidth}
-            onComplete={handleMeasureComplete}
-            onCancel={handleCalibCancel}
-          />
-        )}
-
-        {calibPhase === "dimensions" && pendingCalib && (
-          <PaintingSizeInput
-            unit={pendingCalib.unit}
-            onApply={handleDimensionsApply}
+            stageHeight={stageHeight}
+            croppedPaintingUrl={state.croppedPaintingUrl}
+            onMeasureComplete={handleMeasureComplete}
+            onDistanceConfirm={handleDistanceConfirm}
+            onDimensionsApply={handleDimensionsApply}
             onCancel={handleCalibCancel}
           />
         )}
       </div>
 
+      {/* Toast overlay */}
       {toast && (
-        <p className="text-xs text-center mb-4" style={{ color: "var(--primary)" }}>
-          {t("calibration.suggestedApplied")}
-        </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div
+            className="px-6 py-4 text-xs tracking-widest uppercase font-medium text-center"
+            style={{
+              backgroundColor: "rgba(249,249,246,0.85)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              color: "var(--on-surface)",
+              boxShadow: "0 4px 60px rgba(46,52,48,0.06)",
+            }}
+          >
+            {t("calibration.suggestedApplied")}
+          </div>
+        </div>
       )}
 
-      {calibPhase === "off" && (
-        <>
-          <button
-            onClick={() => setCalibPhase("measure")}
-            className="w-full py-3 text-xs tracking-widest uppercase mb-4 flex items-center justify-center gap-2"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
+      {/* Two side-by-side action cards */}
+      <div className="grid grid-cols-2 mb-6" style={{ gap: "1px", backgroundColor: "var(--outline-variant)", opacity: calibPhase !== "off" ? 0.4 : 1 }}>
+        <button
+          onClick={() => calibPhase === "off" && setCalibPhase("measure")}
+          className="flex flex-col items-center justify-center py-5 gap-2"
+          style={{ backgroundColor: "var(--surface-container-low)" }}
+          disabled={calibPhase !== "off"}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
+            <path d="M2 2h4v20H2zM6 2h2v3H6zM6 8h2v3H6zM6 14h2v3H6zM6 19h2v3H6zM18 2h4v20h-4zM16 2h2v3h-2zM16 8h2v3h-2zM16 14h2v3h-2zM16 19h2v3h-2zM8 11h8v2H8z" />
+          </svg>
+          <span className="text-xs tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
             {t("setExactSize")}
-          </button>
+          </span>
+        </button>
+        <button
+          onClick={() => calibPhase === "off" && goNext()}
+          className="flex flex-col items-center justify-center py-5 gap-2"
+          style={{ backgroundColor: "var(--surface-container-low)" }}
+          disabled={calibPhase !== "off"}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
+            <rect x="4" y="4" width="16" height="16" />
+            <circle cx="4" cy="4" r="2" fill="currentColor" />
+            <circle cx="20" cy="4" r="2" fill="currentColor" />
+            <circle cx="20" cy="20" r="2" fill="currentColor" />
+            <circle cx="4" cy="20" r="2" fill="currentColor" />
+          </svg>
+          <span className="text-xs tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
+            {t("adjustCorners")}
+          </span>
+        </button>
+      </div>
 
-          <button
-            onClick={() => goToStep("render")}
-            className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3"
-            style={{
-              background: `linear-gradient(to right, var(--primary), var(--primary-dim))`,
-              color: "var(--on-primary)",
-            }}
-          >
-            {t("continueButton")}
-          </button>
+      <button
+        onClick={() => goToStep("render")}
+        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3"
+        style={{
+          background: `linear-gradient(to right, var(--primary), var(--primary-dim))`,
+          color: "var(--on-primary)",
+        }}
+      >
+        {t("continueButton")}
+      </button>
 
-          <button
-            onClick={goNext}
-            className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
-            style={{
-              border: "1px solid var(--primary)",
-              color: "var(--primary)",
-            }}
-          >
-            {t("adjustCornersButton")}
-          </button>
-
-          <button
-            onClick={goPrev}
-            className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
-            style={{ color: "var(--on-surface-variant)" }}
-          >
-            <span>←</span>
-            <span>{t("previousButton")}</span>
-          </button>
-        </>
-      )}
+      <button
+        onClick={goPrev}
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        style={{ color: "var(--on-surface-variant)" }}
+      >
+        <span>←</span>
+        <span>{t("previousButton")}</span>
+      </button>
     </div>
   );
 }

@@ -8,11 +8,13 @@ type Props = {
   wallUrl: string;
   paintingUrl: string;
   containerWidth: number;
+  hidePainting?: boolean;
   onTransformChange: (x: number, y: number, width: number, height: number, rotation: number, canvasWidth: number, canvasHeight: number) => void;
 };
 
 export type KonvaPlacementHandle = {
   resizePainting: (width: number, height: number) => void;
+  getStageHeight: () => number;
 };
 
 function useImage(url: string): HTMLImageElement | null {
@@ -27,7 +29,7 @@ function useImage(url: string): HTMLImageElement | null {
 }
 
 const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPlacement(
-  { wallUrl, paintingUrl, containerWidth, onTransformChange },
+  { wallUrl, paintingUrl, containerWidth, hidePainting, onTransformChange },
   ref,
 ) {
   const wallImg = useImage(wallUrl);
@@ -51,8 +53,20 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
     if (trRef.current && paintingRef.current) {
       trRef.current.nodes([paintingRef.current]);
       trRef.current.getLayer()?.batchDraw();
+      // Emit initial placement so state.placement is never null
+      emitChange();
     }
   }, [paintingImg]);
+
+  // Toggle painting + transformer visibility for calibration
+  useEffect(() => {
+    const painting = paintingRef.current;
+    const tr = trRef.current;
+    if (!painting || !tr) return;
+    painting.visible(!hidePainting);
+    tr.visible(!hidePainting);
+    tr.getLayer()?.batchDraw();
+  }, [hidePainting]);
 
   const emitChange = () => {
     const node = paintingRef.current;
@@ -77,6 +91,9 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
   };
 
   useImperativeHandle(ref, () => ({
+    getStageHeight() {
+      return stageHeight;
+    },
     resizePainting(newW: number, newH: number) {
       const node = paintingRef.current;
       if (!node) return;
@@ -136,6 +153,17 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
           ref={trRef}
           rotateEnabled
           keepRatio
+          anchorFill="white"
+          anchorStroke="#4e6076"
+          anchorSize={12}
+          anchorCornerRadius={0}
+          anchorStrokeWidth={1.5}
+          borderStroke="white"
+          borderStrokeWidth={1.5}
+          rotateAnchorOffset={20}
+          anchorStyleFunc={(anchor) => {
+            anchor.hitStrokeWidth(12);
+          }}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 20 || newBox.height < 20) return oldBox;
             return newBox;

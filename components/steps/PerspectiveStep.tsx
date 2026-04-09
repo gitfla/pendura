@@ -8,7 +8,7 @@ import { isQuadConvex, rectToQuad } from "@/lib/geometry";
 
 type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
 
-const HANDLE_SIZE = 24;
+const HANDLE_SIZE = 12;
 const HIT_RADIUS = 24;
 
 
@@ -64,9 +64,13 @@ export default function PerspectiveStep() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !wallImg || !containerWidth) return;
-    canvas.width = containerWidth;
-    canvas.height = stageHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = containerWidth * dpr;
+    canvas.height = stageHeight * dpr;
+    canvas.style.width = `${containerWidth}px`;
+    canvas.style.height = `${stageHeight}px`;
     const ctx = canvas.getContext("2d")!;
+    ctx.scale(dpr, dpr);
 
     ctx.clearRect(0, 0, containerWidth, stageHeight);
     ctx.drawImage(wallImg, 0, 0, containerWidth, stageHeight);
@@ -200,11 +204,24 @@ export default function PerspectiveStep() {
         {t("subtitle")}
       </p>
 
-      <div ref={containerRef} className="w-full mb-6 relative" style={{ touchAction: "none" }}>
+      <div
+        ref={containerRef}
+        className="w-full mb-6 relative"
+        style={{ touchAction: "none" }}
+      >
+        {/* Instant wall preview — sizes container and prevents flash while canvas loads */}
+        {state.wallPreviewUrl && (
+          <img
+            src={state.wallPreviewUrl}
+            alt=""
+            className="w-full block"
+            style={{ pointerEvents: "none" }}
+          />
+        )}
         <canvas
           ref={canvasRef}
-          className="w-full block"
-          style={{ cursor: "crosshair" }}
+          className="block"
+          style={{ cursor: "crosshair", position: "absolute", inset: 0, width: "100%", height: "100%" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -222,9 +239,8 @@ export default function PerspectiveStep() {
                   top: p.y - HANDLE_SIZE / 2,
                   width: HANDLE_SIZE,
                   height: HANDLE_SIZE,
-                  border: "2px solid white",
-                  backgroundColor: "var(--primary)",
-                  opacity: 0.85,
+                  border: "1.5px solid #4e6076",
+                  backgroundColor: "white",
                 }}
               />
             );
