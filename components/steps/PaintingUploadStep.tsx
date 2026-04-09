@@ -8,7 +8,8 @@ import { compressImageIfNeeded, readFileAsDataUrl } from "@/lib/image";
 
 export default function PaintingUploadStep() {
   const t = useTranslations("painting");
-  const { state, setState, goNext, goPrev } = useProject();
+  const { state, setState, goNextWithCheckpoint, goPrev } = useProject();
+  const t2 = useTranslations("checkpoint");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,7 +25,7 @@ export default function PaintingUploadStep() {
       const compressed = await compressImageIfNeeded(file);
       const dataUrl = await readFileAsDataUrl(compressed);
       setState({ paintingImage: compressed, paintingPreviewUrl: dataUrl });
-      goNext();
+      goNextWithCheckpoint(t2("paintingDone"), dataUrl);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -39,27 +40,7 @@ export default function PaintingUploadStep() {
 
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-      {state.wallPreviewUrl && (
-        <div className="flex items-center gap-3 mb-6 p-3" style={{ backgroundColor: "var(--surface-container-low)" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={state.wallPreviewUrl} alt="Wall confirmed" className="w-12 h-12 object-cover" />
-          <div>
-            <p className="text-[10px] tracking-widest uppercase mb-0.5" style={{ color: "var(--on-surface-variant)" }}>
-              Source Context
-            </p>
-            <p className="text-sm font-medium" style={{ color: "var(--on-surface)" }}>
-              {t("confirmed")}
-            </p>
-          </div>
-          <div className="ml-auto w-5 h-5 flex items-center justify-center" style={{ backgroundColor: "var(--primary)", color: "white" }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="2 6 5 9 10 3" />
-            </svg>
-          </div>
-        </div>
-      )}
-
-      <h1 className="font-serif text-4xl leading-tight mb-4" style={{ color: "var(--on-surface)" }}>
+<h1 className="font-serif text-4xl leading-tight mb-4" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>
       <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--on-surface-variant)" }}>
@@ -69,8 +50,9 @@ export default function PaintingUploadStep() {
       <div
         className="mb-6 relative flex flex-col items-center justify-center gap-3"
         style={{
-          backgroundColor: "var(--surface-container-low)",
-          border: "1.5px dashed var(--outline-variant)",
+          backgroundColor: "var(--surface-container)",
+          border: "10px solid #fff",
+          boxShadow: "0 4px 32px rgba(46,52,48,0.08)",
           minHeight: "180px",
         }}
       >
@@ -123,7 +105,7 @@ export default function PaintingUploadStep() {
 
       <button
         onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-2"
+        className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center gap-2 px-6"
         style={{ color: "var(--on-surface-variant)" }}
       >
         <span>←</span>

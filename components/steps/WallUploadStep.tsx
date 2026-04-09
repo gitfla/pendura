@@ -10,7 +10,8 @@ const STEP_KEYS = ["01", "02", "03", "04", "05"] as const;
 
 export default function WallUploadStep() {
   const t = useTranslations("wall");
-  const { setState, goNext } = useProject();
+  const { setState, goNextWithCheckpoint } = useProject();
+  const t2 = useTranslations("checkpoint");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,7 +27,7 @@ export default function WallUploadStep() {
       const compressed = await compressImageIfNeeded(file);
       const dataUrl = await readFileAsDataUrl(compressed);
       setState({ wallImage: compressed, wallPreviewUrl: dataUrl });
-      goNext();
+      goNextWithCheckpoint(t2("wallDone"), dataUrl);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -52,8 +53,9 @@ export default function WallUploadStep() {
       <div
         className="relative flex flex-col items-center justify-center gap-3"
         style={{
-          backgroundColor: "var(--surface-container-low)",
-          border: "1.5px dashed var(--outline-variant)",
+          backgroundColor: "var(--surface-container)",
+          border: "10px solid #fff",
+          boxShadow: "0 4px 32px rgba(46,52,48,0.08)",
           minHeight: "180px",
         }}
       >

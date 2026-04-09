@@ -22,8 +22,13 @@ type ProjectContextType = {
   setState: (updates: Partial<ProjectState>) => void;
   currentStep: Step;
   maxReachedStep: Step;
+  checkpointMessage: string | null;
+  checkpointImageUrl: string | null;
   goToStep: (step: Step) => void;
   goNext: () => void;
+  goNextWithCheckpoint: (message: string, imageUrl?: string) => void;
+  updateCheckpointImage: (imageUrl: string) => void;
+  advanceFromCheckpoint: () => void;
   goPrev: () => void;
   reset: () => void;
   persistForLocaleSwitch: () => Promise<void>;
@@ -44,6 +49,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [state, setStateRaw] = useState<ProjectState>(initialState);
   const [currentStep, setCurrentStep] = useState<Step>("wall");
   const [maxReachedStep, setMaxReachedStep] = useState<Step>("wall");
+  const [checkpointMessage, setCheckpointMessage] = useState<string | null>(null);
+  const [checkpointImageUrl, setCheckpointImageUrl] = useState<string | null>(null);
 
   // Restore session from IndexedDB on mount (after locale switch)
   useEffect(() => {
@@ -83,6 +90,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     scrollToTop();
   };
 
+  const goNextWithCheckpoint = (message: string, imageUrl?: string) => {
+    setCheckpointMessage(message);
+    setCheckpointImageUrl(imageUrl ?? null);
+  };
+
+  const updateCheckpointImage = (imageUrl: string) => {
+    setCheckpointImageUrl(imageUrl);
+  };
+
+  const advanceFromCheckpoint = useCallback(() => {
+    setCheckpointMessage(null);
+    setCheckpointImageUrl(null);
+    goNext();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, maxReachedStep]);
+
   const goPrev = () => {
     const idx = STEP_INDEX[currentStep];
     if (idx > 0) {
@@ -111,11 +134,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setState,
         currentStep,
         maxReachedStep,
+        checkpointMessage,
+        checkpointImageUrl,
         goToStep,
         goNext,
+        goNextWithCheckpoint,
+        updateCheckpointImage,
         goPrev,
         reset,
         persistForLocaleSwitch,
+        advanceFromCheckpoint,
       }}
     >
       {children}

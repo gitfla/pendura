@@ -28,13 +28,15 @@ export type KonvaCropHandle = {
 
 export default function CropStep() {
   const t = useTranslations("crop");
-  const { state, setState, goNext, goPrev } = useProject();
+  const { state, setState, goNextWithCheckpoint, updateCheckpointImage, goPrev } = useProject();
+  const t2 = useTranslations("checkpoint");
   const konvaCropRef = useRef<KonvaCropHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [cropMode, setCropMode] = useState<CropMode>("rectangle");
   const [imgLoaded, setImgLoaded] = useState(false);
   const [paintingImg, setPaintingImg] = useState<HTMLImageElement | null>(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -64,7 +66,13 @@ export default function CropStep() {
 
     const { w: displayWidth, h: displayHeight } = konvaCropRef.current.getDisplaySize();
 
-    // Use perspectiveCropToBlob for both modes (rotated rect = quad)
+    // Show checkpoint immediately — computation runs behind it
+    goNextWithCheckpoint(t2("cropDone"));
+    setProcessing(true);
+
+    // Yield to browser so checkpoint screen renders before heavy computation
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+
     const blob = await perspectiveCropToBlob(
       paintingImg,
       quad,
@@ -73,10 +81,11 @@ export default function CropStep() {
     );
 
     if (state.croppedPaintingUrl) URL.revokeObjectURL(state.croppedPaintingUrl);
-
     const url = URL.createObjectURL(blob);
     setState({ croppedPaintingBlob: blob, croppedPaintingUrl: url });
-    goNext();
+    // Update checkpoint to show the cropped result
+    updateCheckpointImage(url);
+    setProcessing(false);
   };
 
   const isRect = cropMode === "rectangle";
@@ -92,7 +101,8 @@ export default function CropStep() {
       </p>
 
       {/* Konva crop canvas */}
-      <div ref={containerRef} className="w-full mb-4 overflow-hidden">
+      <div className="w-full mb-4" style={{ padding: 10, backgroundColor: "#fff", boxShadow: "0 4px 32px rgba(46,52,48,0.08)" }}>
+      <div ref={containerRef} className="w-full overflow-hidden">
         {containerWidth > 0 && state.paintingPreviewUrl && (
           <KonvaCrop
             ref={konvaCropRef}
@@ -101,6 +111,7 @@ export default function CropStep() {
             mode={cropMode}
           />
         )}
+      </div>
       </div>
 
       {/* Mode toggle — side-by-side cards matching PlacementStep */}
@@ -141,16 +152,17 @@ export default function CropStep() {
 
       <button
         onClick={handleConfirm}
-        disabled={!imgLoaded}
-        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3 disabled:opacity-40"
+        disabled={!imgLoaded || processing}
+        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 mb-3 disabled:opacity-40"
         style={{ background: `linear-gradient(to right, var(--primary), var(--primary-dim))`, color: "var(--on-primary)" }}
       >
-        {t("confirmButton")}
+        <span>{processing ? t("processing") : t("confirmButton")}</span>
+        <span>→</span>
       </button>
 
       <button
         onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center gap-2 px-6"
         style={{ color: "var(--on-surface-variant)" }}
       >
         <span>←</span>

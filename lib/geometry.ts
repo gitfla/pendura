@@ -11,24 +11,21 @@ export function rectToQuad(
   height: number,
   rotationDeg: number
 ): Quad {
-  const cx = x + width / 2;
-  const cy = y + height / 2;
+  // Konva rotates around the node origin (x, y), not the center
   const rad = (rotationDeg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
 
-  const rotate = (px: number, py: number): Point => {
-    const dx = px - cx;
-    const dy = py - cy;
-    return {
-      x: cx + dx * Math.cos(rad) - dy * Math.sin(rad),
-      y: cy + dx * Math.sin(rad) + dy * Math.cos(rad),
-    };
-  };
+  const rotate = (dx: number, dy: number): Point => ({
+    x: x + dx * cos - dy * sin,
+    y: y + dx * sin + dy * cos,
+  });
 
   return {
-    topLeft: rotate(x, y),
-    topRight: rotate(x + width, y),
-    bottomRight: rotate(x + width, y + height),
-    bottomLeft: rotate(x, y + height),
+    topLeft:     rotate(0,     0),
+    topRight:    rotate(width, 0),
+    bottomRight: rotate(width, height),
+    bottomLeft:  rotate(0,     height),
   };
 }
 

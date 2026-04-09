@@ -30,7 +30,7 @@ function useImage(url: string): HTMLImageElement | null {
   return img;
 }
 
-const CORNER_SIZE = 12;
+const CORNER_SIZE = 8;
 const PAD = 24;
 
 const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
@@ -48,9 +48,14 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
     topLeft: null, topRight: null, bottomRight: null, bottomLeft: null,
   });
 
-  const stageHeight = paintingImg
-    ? Math.round((paintingImg.naturalHeight / paintingImg.naturalWidth) * containerWidth)
-    : Math.round(containerWidth * 0.75);
+  const naturalRatio = paintingImg
+    ? paintingImg.naturalHeight / paintingImg.naturalWidth
+    : 0.75;
+  const maxStageHeight = typeof window !== "undefined" ? Math.floor(window.innerHeight * 0.65) : 600;
+  const effectiveWidth = naturalRatio * containerWidth > maxStageHeight
+    ? Math.floor(maxStageHeight / naturalRatio)
+    : containerWidth;
+  const stageHeight = Math.round(naturalRatio * effectiveWidth);
 
   // Initialize crop rect and perspective quad when image loads
   useEffect(() => {
@@ -59,7 +64,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
     node.setAttrs({
       x: PAD,
       y: PAD,
-      width: containerWidth - PAD * 2,
+      width: effectiveWidth - PAD * 2,
       height: stageHeight - PAD * 2,
       scaleX: 1,
       scaleY: 1,
@@ -72,8 +77,8 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
     // Init perspective quad
     setPerspQuad({
       topLeft: { x: PAD, y: PAD },
-      topRight: { x: containerWidth - PAD, y: PAD },
-      bottomRight: { x: containerWidth - PAD, y: stageHeight - PAD },
+      topRight: { x: effectiveWidth - PAD, y: PAD },
+      bottomRight: { x: effectiveWidth - PAD, y: stageHeight - PAD },
       bottomLeft: { x: PAD, y: stageHeight - PAD },
     });
   }, [paintingImg, containerWidth, stageHeight]);
@@ -130,7 +135,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
       }
     },
     getDisplaySize() {
-      return { w: containerWidth, h: stageHeight };
+      return { w: effectiveWidth, h: stageHeight };
     },
   }));
 
@@ -150,13 +155,13 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
   const isRect = mode === "rectangle";
 
   return (
-    <div style={{ touchAction: "none" }}>
-      <Stage width={containerWidth} height={stageHeight}>
+    <div style={{ touchAction: "none", display: "flex", justifyContent: "center" }}>
+      <Stage width={effectiveWidth} height={stageHeight}>
         <Layer>
           {/* Painting image background */}
           <KonvaImage
             image={paintingImg}
-            width={containerWidth}
+            width={effectiveWidth}
             height={stageHeight}
           />
 
@@ -184,7 +189,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
 
                   // Outer rect (clockwise) + inner crop hole (counterclockwise) → evenodd fill
                   ctx.beginPath();
-                  ctx.rect(0, 0, containerWidth, stageHeight);
+                  ctx.rect(0, 0, effectiveWidth, stageHeight);
                   ctx.moveTo(c3[0], c3[1]);
                   ctx.lineTo(c2[0], c2[1]);
                   ctx.lineTo(c1[0], c1[1]);
@@ -202,7 +207,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                 ref={cropRef}
                 x={PAD}
                 y={PAD}
-                width={containerWidth - PAD * 2}
+                width={effectiveWidth - PAD * 2}
                 height={stageHeight - PAD * 2}
                 fill="transparent"
                 draggable
@@ -215,16 +220,16 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                 ref={trRef}
                 rotateEnabled
                 keepRatio={false}
-                anchorFill="white"
-                anchorStroke="#4e6076"
-                anchorSize={12}
+                anchorFill="rgba(160,165,160,0.9)"
+                anchorStroke="rgba(160,165,160,0.9)"
+                anchorSize={8}
                 anchorCornerRadius={0}
-                anchorStrokeWidth={1.5}
-                borderStroke="white"
-                borderStrokeWidth={1.5}
+                anchorStrokeWidth={1}
+                borderStroke="rgba(160,165,160,0.7)"
+                borderStrokeWidth={1}
                 rotateAnchorOffset={20}
                 anchorStyleFunc={(anchor) => {
-                  anchor.hitStrokeWidth(12);
+                  anchor.hitStrokeWidth(20);
                 }}
                 boundBoxFunc={(oldBox, newBox) => {
                   if (newBox.width < 40 || newBox.height < 40) return oldBox;
@@ -243,7 +248,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                   const q = perspQuad;
                   // Outer rect (clockwise) + inner quad hole (counterclockwise) → evenodd fill
                   ctx.beginPath();
-                  ctx.rect(0, 0, containerWidth, stageHeight);
+                  ctx.rect(0, 0, effectiveWidth, stageHeight);
                   ctx.moveTo(q.bottomLeft.x, q.bottomLeft.y);
                   ctx.lineTo(q.bottomRight.x, q.bottomRight.y);
                   ctx.lineTo(q.topRight.x, q.topRight.y);
@@ -265,8 +270,8 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                   perspQuad.bottomLeft.x, perspQuad.bottomLeft.y,
                 ]}
                 closed
-                stroke="white"
-                strokeWidth={1.5}
+                stroke="rgba(160,165,160,0.7)"
+                strokeWidth={1}
                 listening={false}
               />
 
@@ -281,11 +286,11 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                     y={p.y - CORNER_SIZE / 2}
                     width={CORNER_SIZE}
                     height={CORNER_SIZE}
-                    fill="white"
-                    stroke="#4e6076"
-                    strokeWidth={1.5}
+                    fill="rgba(160,165,160,0.9)"
+                    stroke="rgba(160,165,160,0.9)"
+                    strokeWidth={1}
                     hitFunc={(ctx, shape) => {
-                      const pad = 12;
+                      const pad = 20;
                       ctx.beginPath();
                       ctx.rect(-pad, -pad, CORNER_SIZE + pad * 2, CORNER_SIZE + pad * 2);
                       ctx.closePath();
@@ -293,7 +298,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
                     }}
                     draggable
                     dragBoundFunc={(pos) => ({
-                      x: Math.max(-CORNER_SIZE / 2, Math.min(containerWidth - CORNER_SIZE / 2, pos.x)),
+                      x: Math.max(-CORNER_SIZE / 2, Math.min(effectiveWidth - CORNER_SIZE / 2, pos.x)),
                       y: Math.max(-CORNER_SIZE / 2, Math.min(stageHeight - CORNER_SIZE / 2, pos.y)),
                     })}
                     onDragMove={() => onCornerDrag(key)}

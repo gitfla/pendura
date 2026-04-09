@@ -249,21 +249,23 @@ export default function PerspectiveStep() {
 
       <button
         onClick={handleContinue}
-        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-center mb-3"
+        className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 mb-3"
         style={{
           background: `linear-gradient(to right, var(--primary), var(--primary-dim))`,
           color: "var(--on-primary)",
         }}
       >
-        {t("continueButton")}
+        <span>{t("continueButton")}</span>
+        <span>→</span>
       </button>
 
       <button
         onClick={() => goPrev()}
-        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center gap-2 px-6"
         style={{ color: "var(--on-surface-variant)" }}
       >
-        {t("resetButton")}
+        <span>←</span>
+        <span>{t("resetButton")}</span>
       </button>
     </div>
   );

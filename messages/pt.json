@@ -46,6 +46,11 @@
       "tooLarge": "A imagem é muito grande e será comprimida."
     }
   },
+  "checkpoint": {
+    "wallDone": "Foto da parede pronta",
+    "paintingDone": "Obra selecionada",
+    "cropDone": "Obra recortada"
+  },
   "crop": {
     "title": "Recortar a Obra",
     "subtitle": "Recorte bem próximo à borda externa completa da peça que deseja colocar na parede.",
@@ -55,11 +60,13 @@
     "perspectiveInstruction": "Arraste os cantos para delinear as bordas da obra.",
     "rotateLabel": "Girar",
     "confirmButton": "Confirmar Recorte",
+    "processing": "Processando...",
     "previousButton": "Passo Anterior"
   },
   "placement": {
     "title": "Posicionar na Parede",
     "subtitle": "Arraste, redimensione e gire a obra para posicioná-la na parede.",
+    "calibrationTitle": "Medida de Referência",
     "setExactSize": "Definir Tamanho",
     "adjustCorners": "Ajustar Cantos",
     "continueButton": "Continuar para Renderizar",
@@ -78,6 +85,10 @@
       "heightLabel": "Altura",
       "apply": "Aplicar",
       "cancel": "Cancelar",
+      "next": "Próximo",
+      "minHint": "mín. 10 {unit}",
+      "distanceMeasurement": "Medição de Distância",
+      "paintingDimensions": "Dimensões da Obra",
       "suggestedApplied": "Tamanho sugerido aplicado"
     }
   },

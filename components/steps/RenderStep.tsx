@@ -118,9 +118,17 @@ export default function RenderStep() {
 
   if (loading) {
     return (
-      <div className="px-6 py-8 max-w-lg mx-auto w-full flex flex-col items-center justify-center" style={{ minHeight: "60vh" }}>
-        <div className="mb-6 text-4xl" style={{ color: "var(--outline-variant)" }}>⧖</div>
-        <p className="text-xs tracking-widest uppercase text-center" style={{ color: "var(--on-surface-variant)" }}>
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center gap-8 px-12"
+        style={{ backgroundColor: "var(--surface)" }}
+      >
+        <span
+          className="font-serif select-none leading-none animate-pulse"
+          style={{ color: "var(--primary)", letterSpacing: "0.45em", fontSize: "3rem", padding: "0 2rem" }}
+        >
+          PENDURA
+        </span>
+        <p className="text-sm tracking-widest uppercase text-center" style={{ color: "var(--on-surface-variant)" }}>
           {t("loading")}
         </p>
       </div>
@@ -137,9 +145,9 @@ export default function RenderStep() {
       </p>
 
       {resultUrl && (
-        <div className="mb-8">
+        <div className="mb-8" style={{ padding: 10, backgroundColor: "#fff", boxShadow: "0 4px 32px rgba(46,52,48,0.08)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={resultUrl} alt="Final render" className="w-full" />
+          <img src={resultUrl} alt="Final render" className="w-full block" />
         </div>
       )}
 
@@ -161,7 +169,7 @@ export default function RenderStep() {
           </button>
           <button
             onClick={reset}
-            className="w-full py-3 text-xs tracking-widest uppercase mb-3"
+            className="w-full py-3 text-xs tracking-widest uppercase mb-3 flex items-center px-6"
             style={{ color: "var(--outline-variant)" }}
           >
             {t("startOverButton")}
@@ -183,7 +191,7 @@ export default function RenderStep() {
 
       <button
         onClick={goPrev}
-        className="w-full py-3 text-xs tracking-widest uppercase flex items-center justify-center gap-2"
+        className="w-full py-3 text-xs tracking-widest uppercase flex items-center gap-2 px-6"
         style={{ color: "var(--on-surface-variant)" }}
       >
         <span>←</span>

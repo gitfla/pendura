@@ -46,6 +46,11 @@
       "tooLarge": "Image is very large and will be compressed."
     }
   },
+  "checkpoint": {
+    "wallDone": "Wall photo ready",
+    "paintingDone": "Artwork ready",
+    "cropDone": "Artwork cropped"
+  },
   "crop": {
     "title": "Crop the Painting",
     "subtitle": "Crop tightly around the full outer edge of the piece you want to place on the wall.",
@@ -55,11 +60,13 @@
     "perspectiveInstruction": "Drag the corners to outline the painting edges.",
     "rotateLabel": "Rotate",
     "confirmButton": "Confirm Crop",
+    "processing": "Processing...",
     "previousButton": "Previous Step"
   },
   "placement": {
     "title": "Place on Wall",
     "subtitle": "Drag, resize, and rotate the painting to position it on your wall.",
+    "calibrationTitle": "Reference Measure",
     "setExactSize": "Set Exact Size",
     "adjustCorners": "Adjust Corners",
     "continueButton": "Continue to Render",
@@ -78,6 +85,10 @@
       "heightLabel": "Height",
       "apply": "Apply",
       "cancel": "Cancel",
+      "next": "Next",
+      "minHint": "min. 10 {unit}",
+      "distanceMeasurement": "Distance Measurement",
+      "paintingDimensions": "Painting Dimensions",
       "suggestedApplied": "Suggested size applied"
     }
   },

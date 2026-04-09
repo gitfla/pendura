@@ -153,16 +153,16 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
           ref={trRef}
           rotateEnabled
           keepRatio
-          anchorFill="white"
-          anchorStroke="#4e6076"
-          anchorSize={12}
+          anchorFill="rgba(160,165,160,0.9)"
+          anchorStroke="rgba(160,165,160,0.9)"
+          anchorSize={8}
           anchorCornerRadius={0}
-          anchorStrokeWidth={1.5}
-          borderStroke="white"
-          borderStrokeWidth={1.5}
+          anchorStrokeWidth={1}
+          borderStroke="rgba(160,165,160,0.7)"
+          borderStrokeWidth={1}
           rotateAnchorOffset={20}
           anchorStyleFunc={(anchor) => {
-            anchor.hitStrokeWidth(12);
+            anchor.hitStrokeWidth(20);
           }}
           boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 20 || newBox.height < 20) return oldBox;
