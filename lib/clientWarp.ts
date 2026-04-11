@@ -38,8 +38,13 @@ export function clientPerspectiveWarp(
   const minY = Math.max(0, Math.floor(Math.min(...ys)));
   const maxY = Math.min(canvasH - 1, Math.ceil(Math.max(...ys)));
 
-  const bboxW = maxX - minX + 1;
-  const bboxH = maxY - minY + 1;
+  const bboxW = Math.max(1, maxX - minX + 1);
+  const bboxH = Math.max(1, maxY - minY + 1);
+
+  // Guard: if the quad is entirely off-canvas, skip warp
+  if (minX > maxX || minY > maxY) {
+    return { imageData: new ImageData(1, 1), x: 0, y: 0 };
+  }
 
   // Allocate only bounding-box-sized buffer — not full canvas
   const out = new ImageData(bboxW, bboxH);

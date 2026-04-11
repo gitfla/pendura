@@ -66,6 +66,7 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
         posY = (stageHeight - posH) / 2;
       }
       node.setAttrs({
+        image: paintingImg,
         x: posX,
         y: posY,
         width: paintingImg.naturalWidth,
@@ -80,6 +81,7 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
       const visW = node.width() * node.scaleX();
       const visH = node.height() * node.scaleY();
       node.setAttrs({
+        image: paintingImg,
         width: paintingImg.naturalWidth,
         height: paintingImg.naturalHeight,
         scaleX: visW / paintingImg.naturalWidth,

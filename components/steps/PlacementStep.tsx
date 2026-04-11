@@ -276,17 +276,6 @@ export default function PlacementStep() {
   };
 
   const handleResetToRect = () => {
-    if (!state.placement) return;
-    // Use current displayQuad if available (reflects latest drag), else fall back to saved state
-    const q = displayQuad ?? state.placement.quad;
-    const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
-    const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
-    const minX = Math.min(...xs), minY = Math.min(...ys);
-    const maxX = Math.max(...xs), maxY = Math.max(...ys);
-    // Use rotation 0: axis-aligned bbox preserves the general area without distortion
-    const rectQuad = rectToQuad(minX, minY, maxX - minX, maxY - minY, 0);
-    setDisplayQuad(rectQuad);
-    setState({ placement: { ...state.placement, mode: "basic", quad: rectQuad, rotationDeg: 0 } });
     setPerspMode(false);
   };
 
@@ -413,89 +402,87 @@ export default function PlacementStep() {
           onClick={handlePhotoClick}
         >
           {/* Dimensions phase: show painting photo */}
-          {calibPhase === "dimensions" ? (
-            state.croppedPaintingUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={state.croppedPaintingUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
-            )
-          ) : perspMode ? (
-            /* ── Perspective warp canvas ── */
-            <>
-              {state.wallPreviewUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={state.wallPreviewUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
-              )}
-              <canvas
-                ref={perspCanvasRef}
-                className="block"
-                style={{ cursor: "crosshair", position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none" }}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-              />
-              {/* Corner handle indicators */}
-              {displayQuad && (["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]).map((key) => {
-                const p = displayQuad[key];
-                return (
-                  <div
-                    key={key}
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: p.x - HANDLE_SIZE / 2,
-                      top: p.y - HANDLE_SIZE / 2,
-                      width: HANDLE_SIZE,
-                      height: HANDLE_SIZE,
-                      backgroundColor: "rgba(160,165,160,0.9)",
-                    }}
-                  />
-                );
-              })}
-            </>
-          ) : (
-            /* ── Rectangle / Konva mode ── */
-            <>
-              {state.wallPreviewUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={state.wallPreviewUrl}
-                  alt=""
-                  className="w-full block"
-                  style={{ pointerEvents: "none" }}
-                  onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
-                />
-              )}
-
-              {containerWidth > 0 && !inCalib && (
-                <div style={{ position: "absolute", inset: 0 }}>
-                  <KonvaPlacement
-                    ref={konvaRef}
-                    wallUrl={state.wallPreviewUrl ?? ""}
-                    paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
-                    containerWidth={containerWidth}
-                    hidePainting={false}
-                    initialRect={initialRectRef.current}
-                    onTransformChange={(x, y, width, height, rotation, canvasWidth, canvasHeight) => {
-                      const quad = rectToQuad(x, y, width, height, rotation);
-                      setState({
-                        placement: { mode: "basic", quad, rotationDeg: rotation, canvasWidth, canvasHeight },
-                      });
-                    }}
-                  />
-                </div>
-              )}
-
-              {(calibPhase === "measure" || calibPhase === "distance") && containerWidth > 0 && (
-                <CalibrationOverlay
-                  pointA={pointA}
-                  pointB={pointB}
-                  containerWidth={containerWidth}
-                  stageHeight={overlayHeight}
-                  labelA={t("calibration.pointA")}
-                  labelB={t("calibration.pointB")}
-                />
-              )}
-            </>
+          {calibPhase === "dimensions" && state.croppedPaintingUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={state.croppedPaintingUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
           )}
+
+          {/* ── Rectangle / Konva mode — always mounted, hidden when not active ── */}
+          <div style={{ display: calibPhase === "dimensions" ? "none" : perspMode ? "none" : "block" }}>
+            {state.wallPreviewUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={state.wallPreviewUrl}
+                alt=""
+                className="w-full block"
+                style={{ pointerEvents: "none" }}
+                onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
+              />
+            )}
+
+            {containerWidth > 0 && !inCalib && (
+              <div style={{ position: "absolute", inset: 0 }}>
+                <KonvaPlacement
+                  ref={konvaRef}
+                  wallUrl={state.wallPreviewUrl ?? ""}
+                  paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
+                  containerWidth={containerWidth}
+                  hidePainting={false}
+                  initialRect={initialRectRef.current}
+                  onTransformChange={(x, y, width, height, rotation, canvasWidth, canvasHeight) => {
+                    const quad = rectToQuad(x, y, width, height, rotation);
+                    setState({
+                      placement: { mode: "basic", quad, rotationDeg: rotation, canvasWidth, canvasHeight },
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            {(calibPhase === "measure" || calibPhase === "distance") && containerWidth > 0 && (
+              <CalibrationOverlay
+                pointA={pointA}
+                pointB={pointB}
+                containerWidth={containerWidth}
+                stageHeight={overlayHeight}
+                labelA={t("calibration.pointA")}
+                labelB={t("calibration.pointB")}
+              />
+            )}
+          </div>
+
+          {/* ── Perspective warp canvas — always mounted, hidden when not active ── */}
+          <div style={{ display: calibPhase !== "off" || !perspMode ? "none" : "block", position: "relative" }}>
+            {state.wallPreviewUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={state.wallPreviewUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
+            )}
+            <canvas
+              ref={perspCanvasRef}
+              className="block"
+              style={{ cursor: "crosshair", position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none" }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+            />
+            {/* Corner handle indicators */}
+            {displayQuad && perspMode && (["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]).map((key) => {
+              const p = displayQuad[key];
+              return (
+                <div
+                  key={key}
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: p.x - HANDLE_SIZE / 2,
+                    top: p.y - HANDLE_SIZE / 2,
+                    width: HANDLE_SIZE,
+                    height: HANDLE_SIZE,
+                    backgroundColor: "rgba(160,165,160,0.9)",
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
