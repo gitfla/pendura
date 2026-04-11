@@ -60,7 +60,6 @@ export type Step =
   | "painting"
   | "crop"
   | "placement"
-  | "perspective"
   | "render";
 
 export const STEPS: Step[] = [
@@ -68,7 +67,6 @@ export const STEPS: Step[] = [
   "painting",
   "crop",
   "placement",
-  "perspective",
   "render",
 ];
 
@@ -77,6 +75,5 @@ export const STEP_INDEX: Record<Step, number> = {
   painting: 1,
   crop: 2,
   placement: 3,
-  perspective: 4,
-  render: 5,
+  render: 4,
 };

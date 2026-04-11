@@ -29,6 +29,22 @@ export function rectToQuad(
   };
 }
 
+export function pointInQuad(p: Point, quad: Quad): boolean {
+  const pts = [quad.topLeft, quad.topRight, quad.bottomRight, quad.bottomLeft];
+  let sign = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % 4];
+    const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+    if (cross !== 0) {
+      const s = cross > 0 ? 1 : -1;
+      if (sign === 0) sign = s;
+      else if (sign !== s) return false;
+    }
+  }
+  return true;
+}
+
 export function isQuadConvex(quad: Quad): boolean {
   const pts = [quad.topLeft, quad.topRight, quad.bottomRight, quad.bottomLeft];
   let sign = 0;

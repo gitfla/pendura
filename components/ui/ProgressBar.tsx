@@ -9,7 +9,6 @@ type SegmentItem = {
   labelKey: "wall" | "art" | "crop" | "place" | "render";
 };
 
-// Perspective step doesn't have its own segment — it maps to "place"
 const SEGMENTS: SegmentItem[] = [
   { step: "wall", labelKey: "wall" },
   { step: "painting", labelKey: "art" },
@@ -22,17 +21,15 @@ export default function ProgressBar() {
   const t = useTranslations("nav");
   const { currentStep, maxReachedStep, goToStep } = useProject();
 
-  const effectiveStep = currentStep === "perspective" ? "placement" : currentStep;
-
   return (
     <nav
       className="flex gap-1 px-4 pt-3 pb-1"
       style={{ backgroundColor: "var(--surface)" }}
     >
       {SEGMENTS.map(({ step, labelKey }) => {
-        const isActive = effectiveStep === step;
+        const isActive = currentStep === step;
         const isReachable = STEP_INDEX[step] <= STEP_INDEX[maxReachedStep];
-        const isFilled = STEP_INDEX[step] <= STEP_INDEX[effectiveStep];
+        const isFilled = STEP_INDEX[step] <= STEP_INDEX[currentStep];
 
         return (
           <button

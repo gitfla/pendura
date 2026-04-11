@@ -69,6 +69,8 @@
     "calibrationTitle": "Medida de Referência",
     "setExactSize": "Definir Tamanho",
     "adjustCorners": "Ajustar Cantos",
+    "resetToRect": "Redefinir para Retângulo",
+    "perspSubtitle": "Arraste os cantos para ajustar a perspectiva. Arraste dentro da obra para movê-la.",
     "continueButton": "Continuar para Renderizar",
     "previousButton": "Passo Anterior",
     "calibration": {

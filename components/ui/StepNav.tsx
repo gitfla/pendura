@@ -49,7 +49,6 @@ const RenderIcon = () => (
   </svg>
 );
 
-// Perspective step doesn't have its own tab — it's accessed from placement
 const NAV_ITEMS: NavItem[] = [
   { step: "wall", icon: <WallIcon />, labelKey: "wall" },
   { step: "painting", icon: <ArtIcon />, labelKey: "art" },
@@ -71,9 +70,6 @@ export default function StepNav() {
     router.push(newPath);
   };
 
-  const effectiveStep =
-    currentStep === "perspective" ? "placement" : currentStep;
-
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-2"
@@ -85,17 +81,13 @@ export default function StepNav() {
       }}
     >
       {NAV_ITEMS.map(({ step, icon, labelKey }) => {
-        const isActive = effectiveStep === step;
+        const isActive = currentStep === step;
         const isReachable = STEP_INDEX[step] <= STEP_INDEX[maxReachedStep];
-        // "render" tab maps to render step, but perspective is between placement and render
-        const targetStep = step === "render" && STEP_INDEX[maxReachedStep] >= STEP_INDEX["render"]
-          ? "render"
-          : step;
 
         return (
           <button
             key={step}
-            onClick={() => isReachable && goToStep(targetStep)}
+            onClick={() => isReachable && goToStep(step)}
             disabled={!isReachable}
             className="flex flex-col items-center gap-1 flex-1 py-2 transition-opacity"
             style={{

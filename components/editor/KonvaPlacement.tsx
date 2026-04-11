@@ -9,12 +9,15 @@ type Props = {
   paintingUrl: string;
   containerWidth: number;
   hidePainting?: boolean;
+  /** If provided, used instead of the default centered 40%-wide init on first mount */
+  initialRect?: { x: number; y: number; width: number; height: number; rotation: number };
   onTransformChange: (x: number, y: number, width: number, height: number, rotation: number, canvasWidth: number, canvasHeight: number) => void;
 };
 
 export type KonvaPlacementHandle = {
   resizePainting: (width: number, height: number) => void;
   getStageHeight: () => number;
+  isReady: () => boolean;
 };
 
 function useImage(url: string): HTMLImageElement | null {
@@ -29,7 +32,7 @@ function useImage(url: string): HTMLImageElement | null {
 }
 
 const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPlacement(
-  { wallUrl, paintingUrl, containerWidth, hidePainting, onTransformChange },
+  { wallUrl, paintingUrl, containerWidth, hidePainting, initialRect, onTransformChange },
   ref,
 ) {
   const wallImg = useImage(wallUrl);
@@ -49,18 +52,27 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
     if (!node || !tr || !paintingImg) return;
 
     if (!initializedRef.current) {
-      // First load: position at 40% width, centered
-      const initW = containerWidth * 0.4;
-      const initH = Math.round((paintingImg.naturalHeight / paintingImg.naturalWidth) * initW);
-      const initX = (containerWidth - initW) / 2;
-      const initY = (stageHeight - initH) / 2;
+      // First load: use initialRect if provided, else center at 40% width
+      let posX: number, posY: number, posW: number, posH: number;
+      if (initialRect) {
+        posX = initialRect.x;
+        posY = initialRect.y;
+        posW = initialRect.width;
+        posH = initialRect.height;
+      } else {
+        posW = containerWidth * 0.4;
+        posH = Math.round((paintingImg.naturalHeight / paintingImg.naturalWidth) * posW);
+        posX = (containerWidth - posW) / 2;
+        posY = (stageHeight - posH) / 2;
+      }
       node.setAttrs({
-        x: initX,
-        y: initY,
+        x: posX,
+        y: posY,
         width: paintingImg.naturalWidth,
         height: paintingImg.naturalHeight,
-        scaleX: initW / paintingImg.naturalWidth,
-        scaleY: initH / paintingImg.naturalHeight,
+        scaleX: posW / paintingImg.naturalWidth,
+        scaleY: posH / paintingImg.naturalHeight,
+        rotation: initialRect?.rotation ?? 0,
       });
       initializedRef.current = true;
     } else {
@@ -109,6 +121,9 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
   useImperativeHandle(ref, () => ({
     getStageHeight() {
       return stageHeight;
+    },
+    isReady() {
+      return !!paintingRef.current;
     },
     resizePainting(newW: number, newH: number) {
       const node = paintingRef.current;

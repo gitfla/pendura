@@ -69,6 +69,8 @@
     "calibrationTitle": "Reference Measure",
     "setExactSize": "Set Exact Size",
     "adjustCorners": "Adjust Corners",
+    "resetToRect": "Reset to Rectangle",
+    "perspSubtitle": "Drag corners to adjust perspective. Drag inside the painting to move it.",
     "continueButton": "Continue to Render",
     "previousButton": "Previous Step",
     "calibration": {

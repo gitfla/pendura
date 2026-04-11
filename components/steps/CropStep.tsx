@@ -41,7 +41,9 @@ export default function CropStep() {
   useEffect(() => {
     if (!containerRef.current) return;
     const ro = new ResizeObserver((entries) => {
-      setContainerWidth(entries[0].contentRect.width);
+      const w = Math.round(entries[0].contentRect.width);
+      // Only update on width change — ignore height-only changes (mobile address bar show/hide)
+      setContainerWidth((prev) => (w !== prev ? w : prev));
     });
     ro.observe(containerRef.current);
     return () => ro.disconnect();
@@ -102,7 +104,7 @@ export default function CropStep() {
 
       {/* Konva crop canvas */}
       <div className="w-full mb-4" style={{ padding: 10, backgroundColor: "#fff", boxShadow: "0 4px 32px rgba(46,52,48,0.08)" }}>
-      <div ref={containerRef} className="w-full overflow-hidden">
+      <div ref={containerRef} className="w-full">
         {containerWidth > 0 && state.paintingPreviewUrl && (
           <KonvaCrop
             ref={konvaCropRef}

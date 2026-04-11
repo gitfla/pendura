@@ -44,7 +44,6 @@ const STEPS_ORDER: Step[] = [
   "painting",
   "crop",
   "placement",
-  "perspective",
   "render",
 ];
 
@@ -73,7 +72,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const scrollToTop = () => setTimeout(() => window.scrollTo(0, 0), 0);
 
   const goToStep = (step: Step) => {
-    // Allow navigating to any already-reached step, or skipping forward (e.g. skip perspective → render)
+    // Allow navigating to any already-reached step, or jumping forward
     setCurrentStep(step);
     if (STEP_INDEX[step] > STEP_INDEX[maxReachedStep]) {
       setMaxReachedStep(step);

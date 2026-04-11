@@ -8,14 +8,13 @@ import WallUploadStep from "@/components/steps/WallUploadStep";
 import PaintingUploadStep from "@/components/steps/PaintingUploadStep";
 import CropStep from "@/components/steps/CropStep";
 import PlacementStep from "@/components/steps/PlacementStep";
-import PerspectiveStep from "@/components/steps/PerspectiveStep";
 import RenderStep from "@/components/steps/RenderStep";
 
 export default function HomePage() {
   const { currentStep, checkpointMessage, checkpointImageUrl, advanceFromCheckpoint } = useProject();
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ backgroundColor: "var(--surface)" }}>
+    <div className="flex flex-col min-h-dvh" style={{ backgroundColor: "var(--surface)" }}>
       <SiteHeader />
       <ProgressBar />
       <main className="flex-1 pb-8">
@@ -23,7 +22,6 @@ export default function HomePage() {
         {currentStep === "painting" && <PaintingUploadStep />}
         {currentStep === "crop" && <CropStep />}
         {currentStep === "placement" && <PlacementStep />}
-        {currentStep === "perspective" && <PerspectiveStep />}
         {currentStep === "render" && <RenderStep />}
       </main>
       {checkpointMessage && (
