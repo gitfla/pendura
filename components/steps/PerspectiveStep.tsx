@@ -5,13 +5,12 @@ import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
 import { Quad, Point } from "@/lib/types";
 import { isQuadConvex, rectToQuad } from "@/lib/geometry";
+import { clientPerspectiveWarp } from "@/lib/clientWarp";
 
 type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
 
 const HANDLE_SIZE = 12;
 const HIT_RADIUS = 24;
-
-
 
 export default function PerspectiveStep() {
   const t = useTranslations("perspective");
@@ -21,10 +20,12 @@ export default function PerspectiveStep() {
   const [containerWidth, setContainerWidth] = useState(0);
   const [wallImg, setWallImg] = useState<HTMLImageElement | null>(null);
   const [paintingImg, setPaintingImg] = useState<HTMLImageElement | null>(null);
+  const [paintingData, setPaintingData] = useState<ImageData | null>(null);
 
   // Display quad (in canvas coordinates)
   const [displayQuad, setDisplayQuad] = useState<Quad | null>(null);
   const draggingRef = useRef<{ key: HandleKey; offsetX: number; offsetY: number } | null>(null);
+  const rafRef = useRef<number>(0);
 
   const stageHeight = wallImg && containerWidth > 0
     ? Math.round((wallImg.naturalHeight / wallImg.naturalWidth) * containerWidth)
@@ -53,14 +54,23 @@ export default function PerspectiveStep() {
     img.src = state.croppedPaintingUrl;
   }, [state.croppedPaintingUrl]);
 
+  // Extract painting ImageData once when painting loads — reused on every drag frame
+  useEffect(() => {
+    if (!paintingImg) return;
+    const oc = document.createElement("canvas");
+    oc.width = paintingImg.naturalWidth;
+    oc.height = paintingImg.naturalHeight;
+    oc.getContext("2d")!.drawImage(paintingImg, 0, 0);
+    setPaintingData(oc.getContext("2d")!.getImageData(0, 0, oc.width, oc.height));
+  }, [paintingImg]);
+
   // Init display quad from placement state
-  // Quad is stored in canvas display coords — use directly
   useEffect(() => {
     if (!state.placement || !containerWidth || !wallImg) return;
     setDisplayQuad(state.placement.quad);
   }, [state.placement, containerWidth, wallImg]);
 
-  // Draw on canvas
+  // Draw on canvas — true perspective warp
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !wallImg || !containerWidth) return;
@@ -79,36 +89,33 @@ export default function PerspectiveStep() {
 
     const { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl } = displayQuad;
 
-    // Draw painting preview (simple polygon overlay)
-    if (paintingImg) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(tl.x, tl.y);
-      ctx.lineTo(tr.x, tr.y);
-      ctx.lineTo(br.x, br.y);
-      ctx.lineTo(bl.x, bl.y);
-      ctx.closePath();
-      ctx.clip();
-      // Approximate: draw painting image in bounding box (true warp is done server-side)
-      const minX = Math.min(tl.x, tr.x, br.x, bl.x);
-      const minY = Math.min(tl.y, tr.y, br.y, bl.y);
-      const maxX = Math.max(tl.x, tr.x, br.x, bl.x);
-      const maxY = Math.max(tl.y, tr.y, br.y, bl.y);
-      ctx.drawImage(paintingImg, minX, minY, maxX - minX, maxY - minY);
-      ctx.restore();
+    // True perspective warp — bbox-sized ImageData drawn via offscreen canvas
+    // so ctx.scale(dpr) applies correctly (putImageData ignores transforms)
+    if (paintingData) {
+      const { imageData, x, y } = clientPerspectiveWarp(
+        paintingData,
+        displayQuad,
+        containerWidth,
+        stageHeight,
+      );
+      const oc = document.createElement("canvas");
+      oc.width = imageData.width;
+      oc.height = imageData.height;
+      oc.getContext("2d")!.putImageData(imageData, 0, 0);
+      ctx.drawImage(oc, x, y);
     }
 
-    // Draw quad outline
+    // Draw quad outline on top
     ctx.beginPath();
     ctx.moveTo(tl.x, tl.y);
     ctx.lineTo(tr.x, tr.y);
     ctx.lineTo(br.x, br.y);
     ctx.lineTo(bl.x, bl.y);
     ctx.closePath();
-    ctx.strokeStyle = "white";
+    ctx.strokeStyle = "rgba(160,165,160,0.9)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-  }, [wallImg, paintingImg, displayQuad, containerWidth, stageHeight]);
+  }, [wallImg, paintingData, displayQuad, containerWidth, stageHeight]);
 
   const getPointerPos = (e: React.PointerEvent): Point => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -141,6 +148,7 @@ export default function PerspectiveStep() {
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!draggingRef.current || !displayQuad) return;
+    e.preventDefault();
     const pos = getPointerPos(e);
     const { key, offsetX, offsetY } = draggingRef.current;
     const newQuad = {
@@ -151,14 +159,18 @@ export default function PerspectiveStep() {
       },
     };
     if (isQuadConvex(newQuad)) {
-      setDisplayQuad(newQuad);
+      // RAF throttle: skip frames if warp hasn't finished yet
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setDisplayQuad(newQuad);
+      });
     }
   }, [displayQuad, containerWidth, stageHeight]);
 
   const onPointerUp = () => {
     if (!displayQuad) return;
+    cancelAnimationFrame(rafRef.current);
     draggingRef.current = null;
-    // Store quad in canvas display coords (RenderStep scales to natural coords)
     setState({
       placement: {
         mode: "perspective",
@@ -172,7 +184,6 @@ export default function PerspectiveStep() {
 
   const handleReset = () => {
     if (!state.placement || !wallImg) return;
-    // Reconstruct the original rectangle from the quad's bounding box + stored rotation
     const q = state.placement.quad;
     const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
     const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
@@ -207,10 +218,10 @@ export default function PerspectiveStep() {
       <div
         ref={containerRef}
         className="w-full mb-6 relative"
-        style={{ touchAction: "none" }}
+        style={{ padding: 10, backgroundColor: "#fff", boxShadow: "0 4px 32px rgba(46,52,48,0.08)", touchAction: "none" }}
       >
-        {/* Instant wall preview — sizes container and prevents flash while canvas loads */}
         {state.wallPreviewUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={state.wallPreviewUrl}
             alt=""
@@ -221,7 +232,7 @@ export default function PerspectiveStep() {
         <canvas
           ref={canvasRef}
           className="block"
-          style={{ cursor: "crosshair", position: "absolute", inset: 0, width: "100%", height: "100%" }}
+          style={{ cursor: "crosshair", position: "absolute", inset: 10, width: "calc(100% - 20px)", height: "calc(100% - 20px)" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -235,12 +246,11 @@ export default function PerspectiveStep() {
                 key={key}
                 className="absolute pointer-events-none"
                 style={{
-                  left: p.x - HANDLE_SIZE / 2,
-                  top: p.y - HANDLE_SIZE / 2,
+                  left: p.x - HANDLE_SIZE / 2 + 10,
+                  top: p.y - HANDLE_SIZE / 2 + 10,
                   width: HANDLE_SIZE,
                   height: HANDLE_SIZE,
-                  border: "1.5px solid #4e6076",
-                  backgroundColor: "white",
+                  backgroundColor: "rgba(160,165,160,0.9)",
                 }}
               />
             );
