@@ -67,7 +67,7 @@ export default function RenderStep() {
 
       // Downscale images to fit within Vercel's payload limit
       const { blob: wallBlob, scale: wallScale } = await downscaleBlob(state.wallImage, MAX_UPLOAD_DIM);
-      const { blob: paintingBlob } = await downscaleBlob(state.croppedPaintingBlob, MAX_UPLOAD_DIM);
+      const { blob: paintingBlob } = await downscaleBlob((state.framedPaintingBlob ?? state.croppedPaintingBlob)!, MAX_UPLOAD_DIM);
 
       // Scale quad: display → natural coords → downscaled coords
       const q = state.placement.quad;

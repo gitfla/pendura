@@ -36,26 +36,50 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
   const paintingImg = useImage(paintingUrl);
   const paintingRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
+  // Tracks whether we've done the first-load initialization
+  const initializedRef = useRef(false);
 
   const stageHeight = wallImg
     ? Math.round((wallImg.naturalHeight / wallImg.naturalWidth) * containerWidth)
     : Math.round(containerWidth * 0.75);
 
-  // Initial painting size: 40% of stage width centered
-  const initW = containerWidth * 0.4;
-  const initH = paintingImg
-    ? Math.round((paintingImg.naturalHeight / paintingImg.naturalWidth) * initW)
-    : initW;
-  const initX = (containerWidth - initW) / 2;
-  const initY = (stageHeight - initH) / 2;
-
   useEffect(() => {
-    if (trRef.current && paintingRef.current) {
-      trRef.current.nodes([paintingRef.current]);
-      trRef.current.getLayer()?.batchDraw();
-      // Emit initial placement so state.placement is never null
-      emitChange();
+    const node = paintingRef.current;
+    const tr = trRef.current;
+    if (!node || !tr || !paintingImg) return;
+
+    if (!initializedRef.current) {
+      // First load: position at 40% width, centered
+      const initW = containerWidth * 0.4;
+      const initH = Math.round((paintingImg.naturalHeight / paintingImg.naturalWidth) * initW);
+      const initX = (containerWidth - initW) / 2;
+      const initY = (stageHeight - initH) / 2;
+      node.setAttrs({
+        x: initX,
+        y: initY,
+        width: paintingImg.naturalWidth,
+        height: paintingImg.naturalHeight,
+        scaleX: initW / paintingImg.naturalWidth,
+        scaleY: initH / paintingImg.naturalHeight,
+      });
+      initializedRef.current = true;
+    } else {
+      // Frame swap: preserve current visual size, update scale for new natural dimensions
+      const visW = node.width() * node.scaleX();
+      const visH = node.height() * node.scaleY();
+      node.setAttrs({
+        width: paintingImg.naturalWidth,
+        height: paintingImg.naturalHeight,
+        scaleX: visW / paintingImg.naturalWidth,
+        scaleY: visH / paintingImg.naturalHeight,
+        // x/y intentionally left unchanged
+      });
     }
+
+    tr.nodes([node]);
+    tr.getLayer()?.batchDraw();
+    emitChange();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paintingImg]);
 
   // Toggle painting + transformer visibility for calibration
@@ -71,14 +95,6 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
   const emitChange = () => {
     const node = paintingRef.current;
     if (!node) return;
-    console.log("[Konva] emitChange", {
-      x: node.x(), y: node.y(),
-      w: node.width() * node.scaleX(),
-      h: node.height() * node.scaleY(),
-      rot: node.rotation(),
-      canvasWidth: containerWidth,
-      canvasHeight: stageHeight,
-    });
     onTransformChange(
       node.x(),
       node.y(),
@@ -101,12 +117,6 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
       const oldH = node.height() * node.scaleY();
       const cx = node.x() + oldW / 2;
       const cy = node.y() + oldH / 2;
-      console.log("[KonvaPlacement] resizePainting", {
-        oldSize: { w: oldW, h: oldH },
-        newSize: { w: newW, h: newH },
-        center: { cx, cy },
-        stageSize: { w: containerWidth, h: stageHeight },
-      });
       node.scaleX(newW / node.width());
       node.scaleY(newH / node.height());
       node.x(cx - newW / 2);
@@ -141,10 +151,6 @@ const KonvaPlacement = forwardRef<KonvaPlacementHandle, Props>(function KonvaPla
         <KonvaImage
           ref={paintingRef}
           image={paintingImg}
-          x={initX}
-          y={initY}
-          width={initW}
-          height={initH}
           draggable
           onDragEnd={emitChange}
           onTransformEnd={emitChange}

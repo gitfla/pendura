@@ -4,7 +4,8 @@ import { useRef, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
 import { rectToQuad, euclideanDistance } from "@/lib/geometry";
-import { Point, PaintingDimensions } from "@/lib/types";
+import { Point, PaintingDimensions, FrameStyle } from "@/lib/types";
+import { applyFrame } from "@/lib/frameRenderer";
 import dynamic from "next/dynamic";
 import type { KonvaPlacementHandle } from "@/components/editor/KonvaPlacement";
 import CalibrationOverlay from "@/components/editor/CalibrationOverlay";
@@ -54,6 +55,9 @@ export default function PlacementStep() {
 
   const [toast, setToast] = useState(false);
 
+  // Frame style
+  const [frameStyle, setFrameStyle] = useState<FrameStyle>(state.frameStyle ?? "none");
+
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "cm" || saved === "in") setUnit(saved);
@@ -78,6 +82,27 @@ export default function PlacementStep() {
     }, 0);
     return () => clearTimeout(id);
   }, [pendingResize, calibPhase]);
+
+  // Generate framed painting when frameStyle changes — always from original croppedPaintingUrl
+  useEffect(() => {
+    if (!state.croppedPaintingUrl) return;
+    let cancelled = false;
+
+    if (frameStyle === "none") {
+      if (state.framedPaintingUrl) URL.revokeObjectURL(state.framedPaintingUrl);
+      setState({ frameStyle: "none", framedPaintingBlob: null, framedPaintingUrl: null });
+      return;
+    }
+
+    applyFrame(state.croppedPaintingUrl, frameStyle).then((result) => {
+      if (cancelled || !result) return;
+      if (state.framedPaintingUrl) URL.revokeObjectURL(state.framedPaintingUrl);
+      setState({ frameStyle, framedPaintingBlob: result.blob, framedPaintingUrl: result.url });
+    });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameStyle, state.croppedPaintingUrl]);
 
   const stageHeight = konvaRef.current?.getStageHeight() ?? Math.round(containerWidth * 0.75);
   // Use measured photo height when in calib phases (Konva not shown)
@@ -215,7 +240,7 @@ export default function PlacementStep() {
                 <KonvaPlacement
                   ref={konvaRef}
                   wallUrl={state.wallPreviewUrl ?? ""}
-                  paintingUrl={state.croppedPaintingUrl ?? ""}
+                  paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
                   containerWidth={containerWidth}
                   hidePainting={false}
                   onTransformChange={(x, y, width, height, rotation, canvasWidth, canvasHeight) => {
@@ -451,6 +476,38 @@ export default function PlacementStep() {
                 {t("adjustCorners")}
               </span>
             </button>
+          </div>
+
+          {/* Frame selector */}
+          <div className="mb-6">
+            <p className="text-[10px] tracking-widest uppercase mb-2 px-1" style={{ color: "var(--on-surface-variant)" }}>
+              {t("frame.label")}
+            </p>
+            <div className="grid grid-cols-4" style={{ gap: "1px", backgroundColor: "var(--outline-variant)" }}>
+              {(["none", "white", "black", "wood"] as FrameStyle[]).map((style) => {
+                const isActive = frameStyle === style;
+                const swatchStyle: React.CSSProperties = style === "none"
+                  ? { background: "linear-gradient(135deg, #ccc 49%, #fff 49%)" }
+                  : style === "white"
+                  ? { backgroundColor: "#ede9e3", border: "1px solid #ccc" }
+                  : style === "black"
+                  ? { backgroundColor: "#111" }
+                  : { background: "linear-gradient(135deg, #c4864a, #8b5e3c)" };
+                return (
+                  <button
+                    key={style}
+                    onClick={() => setFrameStyle(style)}
+                    className="flex flex-col items-center justify-center py-4 gap-2"
+                    style={{ backgroundColor: isActive ? "var(--surface-container-high)" : "var(--surface-container-low)" }}
+                  >
+                    <div style={{ width: 18, height: 18, borderRadius: 1, ...swatchStyle }} />
+                    <span className="text-[10px] tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
+                      {t(`frame.${style}` as "frame.none" | "frame.white" | "frame.black" | "frame.wood")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <button

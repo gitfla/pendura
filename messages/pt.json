@@ -90,6 +90,13 @@
       "distanceMeasurement": "Medição de Distância",
       "paintingDimensions": "Dimensões da Obra",
       "suggestedApplied": "Tamanho sugerido aplicado"
+    },
+    "frame": {
+      "label": "Moldura",
+      "none": "Nenhuma",
+      "white": "Branca",
+      "black": "Preta",
+      "wood": "Madeira"
     }
   },
   "perspective": {

@@ -48,11 +48,12 @@ export default function PerspectiveStep() {
   }, [state.wallPreviewUrl]);
 
   useEffect(() => {
-    if (!state.croppedPaintingUrl) return;
+    const src = state.framedPaintingUrl ?? state.croppedPaintingUrl;
+    if (!src) return;
     const img = new Image();
     img.onload = () => setPaintingImg(img);
-    img.src = state.croppedPaintingUrl;
-  }, [state.croppedPaintingUrl]);
+    img.src = src;
+  }, [state.framedPaintingUrl, state.croppedPaintingUrl]);
 
   // Extract painting ImageData once when painting loads — reused on every drag frame
   useEffect(() => {

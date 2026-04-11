@@ -90,6 +90,13 @@
       "distanceMeasurement": "Distance Measurement",
       "paintingDimensions": "Painting Dimensions",
       "suggestedApplied": "Suggested size applied"
+    },
+    "frame": {
+      "label": "Frame",
+      "none": "None",
+      "white": "White",
+      "black": "Black",
+      "wood": "Wood"
     }
   },
   "perspective": {

@@ -37,6 +37,8 @@ export type PaintingDimensions = {
   unit: "cm" | "in";
 };
 
+export type FrameStyle = "none" | "white" | "black" | "wood";
+
 export type ProjectState = {
   wallImage: File | null;
   wallPreviewUrl: string | null;
@@ -48,6 +50,9 @@ export type ProjectState = {
   placement: PlacementState | null;
   calibration: CalibrationState | null;
   paintingDimensions: PaintingDimensions | null;
+  frameStyle: FrameStyle;
+  framedPaintingBlob: Blob | null;
+  framedPaintingUrl: string | null;
 };
 
 export type Step =

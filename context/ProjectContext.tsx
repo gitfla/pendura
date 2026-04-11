@@ -15,6 +15,9 @@ const initialState: ProjectState = {
   placement: null,
   calibration: null,
   paintingDimensions: null,
+  frameStyle: "none",
+  framedPaintingBlob: null,
+  framedPaintingUrl: null,
 };
 
 type ProjectContextType = {
@@ -117,6 +120,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const reset = () => {
     // croppedPaintingUrl is still an object URL (created from canvas blob)
     if (state.croppedPaintingUrl) URL.revokeObjectURL(state.croppedPaintingUrl);
+    if (state.framedPaintingUrl) URL.revokeObjectURL(state.framedPaintingUrl);
     setStateRaw(initialState);
     setCurrentStep("wall");
     setMaxReachedStep("wall");
