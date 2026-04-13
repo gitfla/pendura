@@ -15,9 +15,7 @@ export type CropRect = {
 };
 
 export type PlacementState = {
-  mode: "basic" | "perspective";
   quad: Quad;
-  rotationDeg: number;
   // Canvas display dimensions when the quad was recorded — needed to scale to natural image coords
   canvasWidth: number;
   canvasHeight: number;

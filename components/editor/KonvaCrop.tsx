@@ -17,6 +17,7 @@ type Props = {
 export type KonvaCropHandle = {
   getCropQuad: () => Quad | null;
   getDisplaySize: () => { w: number; h: number };
+  snapshotRect: () => void;
 };
 
 function useImage(url: string): HTMLImageElement | null {
@@ -48,6 +49,20 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
     topLeft: null, topRight: null, bottomRight: null, bottomLeft: null,
   });
 
+  // Always-current snapshot of the rect node attrs — updated on every drag/transform
+  // so we can read it even after the Rect unmounts on mode switch
+  const rectAttrsRef = useRef<{ x: number; y: number; w: number; h: number; rot: number } | null>(null);
+
+  const snapshotRect = useCallback(() => {
+    const node = cropRef.current;
+    if (!node) return;
+    rectAttrsRef.current = {
+      x: node.x(), y: node.y(),
+      w: node.width() * node.scaleX(), h: node.height() * node.scaleY(),
+      rot: node.rotation(),
+    };
+  }, []);
+
   const naturalRatio = paintingImg
     ? paintingImg.naturalHeight / paintingImg.naturalWidth
     : 0.75;
@@ -74,6 +89,12 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
       trRef.current.nodes([node]);
       trRef.current.getLayer()?.batchDraw();
     }
+    // Snapshot initial rect state
+    rectAttrsRef.current = {
+      x: PAD, y: PAD,
+      w: effectiveWidth - PAD * 2, h: stageHeight - PAD * 2,
+      rot: 0,
+    };
     // Init perspective quad
     setPerspQuad({
       topLeft: { x: PAD, y: PAD },
@@ -83,12 +104,43 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
     });
   }, [paintingImg, containerWidth, stageHeight]);
 
-  // Attach transformer when mode changes to rectangle
+  // Sync state across mode transitions
   useEffect(() => {
-    if (mode === "rectangle" && trRef.current && cropRef.current) {
-      trRef.current.nodes([cropRef.current]);
-      trRef.current.getLayer()?.batchDraw();
+    if (mode === "rectangle") {
+      const node = cropRef.current;
+      const tr = trRef.current;
+      if (!node || !tr) return;
+
+      // On entering rect mode: position rect to bbox of current perspQuad (if available)
+      if (perspQuad) {
+        const xs = [perspQuad.topLeft.x, perspQuad.topRight.x, perspQuad.bottomRight.x, perspQuad.bottomLeft.x];
+        const ys = [perspQuad.topLeft.y, perspQuad.topRight.y, perspQuad.bottomRight.y, perspQuad.bottomLeft.y];
+        const minX = Math.min(...xs), minY = Math.min(...ys);
+        const maxX = Math.max(...xs), maxY = Math.max(...ys);
+        node.setAttrs({
+          x: minX, y: minY,
+          width: maxX - minX, height: maxY - minY,
+          scaleX: 1, scaleY: 1, rotation: 0,
+        });
+      }
+
+      tr.nodes([node]);
+      tr.getLayer()?.batchDraw();
+    } else {
+      // On entering perspective mode: init perspQuad from current rect state (use snapshot, cropRef may be unmounted)
+      const attrs = rectAttrsRef.current;
+      if (!attrs) return;
+      const { x, y, w, h, rot } = attrs;
+      const rad = (rot * Math.PI) / 180;
+      const cos = Math.cos(rad), sin = Math.sin(rad);
+      setPerspQuad({
+        topLeft:     { x,                         y },
+        topRight:    { x: x + w * cos,             y: y + w * sin },
+        bottomRight: { x: x + w * cos - h * sin,   y: y + w * sin + h * cos },
+        bottomLeft:  { x: x - h * sin,             y: y + h * cos },
+      });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   // Redraw dim overlay when crop rect changes
@@ -113,6 +165,7 @@ const KonvaCrop = forwardRef<KonvaCropHandle, Props>(function KonvaCrop(
   }, [perspQuad]);
 
   useImperativeHandle(ref, () => ({
+    snapshotRect,
     getCropQuad(): Quad | null {
       if (mode === "rectangle") {
         const node = cropRef.current;

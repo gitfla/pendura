@@ -24,6 +24,7 @@ type CropMode = "rectangle" | "perspective";
 export type KonvaCropHandle = {
   getCropQuad: () => Quad | null;
   getDisplaySize: () => { w: number; h: number };
+  snapshotRect: () => void;
 };
 
 export default function CropStep() {
@@ -133,7 +134,7 @@ export default function CropStep() {
           </span>
         </button>
         <button
-          onClick={() => setCropMode("perspective")}
+          onClick={() => { konvaCropRef.current?.snapshotRect(); setCropMode("perspective"); }}
           className="flex flex-col items-center justify-center py-4 gap-2"
           style={{
             backgroundColor: isPersp ? "var(--surface-container-high)" : "var(--surface-container-low)",

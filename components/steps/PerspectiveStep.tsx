@@ -174,9 +174,7 @@ export default function PerspectiveStep() {
     draggingRef.current = null;
     setState({
       placement: {
-        mode: "perspective",
         quad: displayQuad,
-        rotationDeg: state.placement?.rotationDeg ?? 0,
         canvasWidth: containerWidth,
         canvasHeight: stageHeight,
       },
@@ -192,12 +190,11 @@ export default function PerspectiveStep() {
     const minY = Math.min(...ys);
     const maxX = Math.max(...xs);
     const maxY = Math.max(...ys);
-    const rectQuad = rectToQuad(minX, minY, maxX - minX, maxY - minY, state.placement.rotationDeg);
+    const rectQuad = rectToQuad(minX, minY, maxX - minX, maxY - minY, 0);
     setDisplayQuad(rectQuad);
     setState({
       placement: {
         ...state.placement,
-        mode: "perspective",
         quad: rectQuad,
       },
     });

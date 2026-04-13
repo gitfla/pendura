@@ -1,17 +1,16 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
-import { rectToQuad, euclideanDistance, isQuadConvex, pointInQuad } from "@/lib/geometry";
+import { euclideanDistance } from "@/lib/geometry";
 import { Point, Quad, FrameStyle } from "@/lib/types";
 import { applyFrame } from "@/lib/frameRenderer";
-import { clientPerspectiveWarp } from "@/lib/clientWarp";
 import dynamic from "next/dynamic";
-import type { KonvaPlacementHandle } from "@/components/editor/KonvaPlacement";
+import type { PlacementCanvasHandle } from "@/components/editor/PlacementCanvas";
 import CalibrationOverlay from "@/components/editor/CalibrationOverlay";
 
-const KonvaPlacement = dynamic(() => import("@/components/editor/KonvaPlacement"), {
+const PlacementCanvas = dynamic(() => import("@/components/editor/PlacementCanvas"), {
   ssr: false,
   loading: () => (
     <div className="w-full flex items-center justify-center" style={{ aspectRatio: "4/3", backgroundColor: "var(--surface-container-low)" }}>
@@ -23,23 +22,18 @@ const KonvaPlacement = dynamic(() => import("@/components/editor/KonvaPlacement"
 });
 
 const STORAGE_KEY = "pendura_unit";
-const HANDLE_SIZE = 12;
-const HIT_RADIUS = 24;
 
 type CalibrationPhase = "off" | "measure" | "distance" | "dimensions";
-type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
-type DragState =
-  | { type: "corner"; key: HandleKey; offsetX: number; offsetY: number }
-  | { type: "move"; lastX: number; lastY: number };
 
 export default function PlacementStep() {
   const t = useTranslations("placement");
   const { state, setState, goPrev, goToStep } = useProject();
   const containerRef = useRef<HTMLDivElement>(null);
-  const konvaRef = useRef<KonvaPlacementHandle>(null);
-  const perspCanvasRef = useRef<HTMLCanvasElement>(null);
-  // Stable initial rect for KonvaPlacement — captured once when Konva mounts, never updated from live state
-  const initialRectRef = useRef<{ x: number; y: number; width: number; height: number; rotation: number } | undefined>(undefined);
+  const canvasRef = useRef<PlacementCanvasHandle>(null);
+
+  // initialRect for PlacementCanvas — baked at calibration apply time, stable ref
+  const initialRectRef = useRef<{ x: number; y: number; width: number; height: number } | undefined>(undefined);
+
   const distanceInputRef = useRef<HTMLInputElement>(null);
   const widthInputRef = useRef<HTMLInputElement>(null);
   const heightInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +41,7 @@ export default function PlacementStep() {
   const [containerWidth, setContainerWidth] = useState(0);
   const [photoHeight, setPhotoHeight] = useState(0);
   const [calibPhase, setCalibPhase] = useState<CalibrationPhase>("off");
+  const [perspMode, setPerspMode] = useState(false);
 
   // Point picking for calibration
   const [pointA, setPointA] = useState<Point | null>(null);
@@ -61,24 +56,10 @@ export default function PlacementStep() {
   const [dimWidth, setDimWidth] = useState("");
   const [dimHeight, setDimHeight] = useState("");
 
-
   const [toast, setToast] = useState(false);
 
   // Frame style
   const [frameStyle, setFrameStyle] = useState<FrameStyle>(state.frameStyle ?? "none");
-
-  // Perspective mode
-  const [perspMode, setPerspMode] = useState(false);
-  const [displayQuad, setDisplayQuad] = useState<Quad | null>(null);
-  const [wallImg, setWallImg] = useState<HTMLImageElement | null>(null);
-  const [paintingImg, setPaintingImg] = useState<HTMLImageElement | null>(null);
-  const [paintingData, setPaintingData] = useState<ImageData | null>(null);
-  const draggingRef = useRef<DragState | null>(null);
-  const rafRef = useRef<number>(0);
-
-  const stageHeight = wallImg && containerWidth > 0
-    ? Math.round((wallImg.naturalHeight / wallImg.naturalWidth) * containerWidth)
-    : Math.round(containerWidth * 0.75);
 
   // ── Setup ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +76,6 @@ export default function PlacementStep() {
     ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
-
 
   // Generate framed painting when frameStyle changes
   useEffect(() => {
@@ -118,171 +98,9 @@ export default function PlacementStep() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frameStyle, state.croppedPaintingUrl]);
 
-  // ── Perspective mode: load images ─────────────────────────────────────────
-
-  useEffect(() => {
-    if (!state.wallPreviewUrl) return;
-    const img = new Image();
-    img.onload = () => setWallImg(img);
-    img.src = state.wallPreviewUrl;
-  }, [state.wallPreviewUrl]);
-
-  useEffect(() => {
-    const src = state.framedPaintingUrl ?? state.croppedPaintingUrl;
-    if (!src) return;
-    const img = new Image();
-    img.onload = () => setPaintingImg(img);
-    img.src = src;
-  }, [state.framedPaintingUrl, state.croppedPaintingUrl]);
-
-  // Extract painting ImageData once for warp reuse
-  useEffect(() => {
-    if (!paintingImg) return;
-    const oc = document.createElement("canvas");
-    oc.width = paintingImg.naturalWidth;
-    oc.height = paintingImg.naturalHeight;
-    oc.getContext("2d")!.drawImage(paintingImg, 0, 0);
-    setPaintingData(oc.getContext("2d")!.getImageData(0, 0, oc.width, oc.height));
-  }, [paintingImg]);
-
-  // Init displayQuad when entering perspective mode
-  useEffect(() => {
-    if (!perspMode || !state.placement) return;
-    setDisplayQuad(state.placement.quad);
-  }, [perspMode, state.placement]);
-
-  // Draw perspective canvas
-  useEffect(() => {
-    if (!perspMode) return;
-    const canvas = perspCanvasRef.current;
-    if (!canvas || !wallImg || !containerWidth) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = containerWidth * dpr;
-    canvas.height = stageHeight * dpr;
-    canvas.style.width = `${containerWidth}px`;
-    canvas.style.height = `${stageHeight}px`;
-    const ctx = canvas.getContext("2d")!;
-    ctx.scale(dpr, dpr);
-
-    ctx.clearRect(0, 0, containerWidth, stageHeight);
-    ctx.drawImage(wallImg, 0, 0, containerWidth, stageHeight);
-
-    if (!displayQuad) return;
-    const { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl } = displayQuad;
-
-    if (paintingData) {
-      const { imageData, x, y } = clientPerspectiveWarp(paintingData, displayQuad, containerWidth, stageHeight);
-      const oc = document.createElement("canvas");
-      oc.width = imageData.width;
-      oc.height = imageData.height;
-      oc.getContext("2d")!.putImageData(imageData, 0, 0);
-      ctx.drawImage(oc, x, y);
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(tl.x, tl.y);
-    ctx.lineTo(tr.x, tr.y);
-    ctx.lineTo(br.x, br.y);
-    ctx.lineTo(bl.x, bl.y);
-    ctx.closePath();
-    ctx.strokeStyle = "rgba(160,165,160,0.9)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }, [perspMode, wallImg, paintingData, displayQuad, containerWidth, stageHeight]);
-
-  // ── Perspective pointer events ─────────────────────────────────────────────
-
-  const getPointerPos = (e: React.PointerEvent): Point => {
-    const rect = perspCanvasRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-
-  const hitTestCorner = (pos: Point): HandleKey | null => {
-    if (!displayQuad) return null;
-    for (const key of ["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]) {
-      const p = displayQuad[key];
-      if (Math.abs(pos.x - p.x) <= HIT_RADIUS && Math.abs(pos.y - p.y) <= HIT_RADIUS) return key;
-    }
-    return null;
-  };
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (!displayQuad) return;
-    const pos = getPointerPos(e);
-    const cornerKey = hitTestCorner(pos);
-    if (cornerKey) {
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      draggingRef.current = {
-        type: "corner",
-        key: cornerKey,
-        offsetX: pos.x - displayQuad[cornerKey].x,
-        offsetY: pos.y - displayQuad[cornerKey].y,
-      };
-    } else if (pointInQuad(pos, displayQuad)) {
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      draggingRef.current = { type: "move", lastX: pos.x, lastY: pos.y };
-    }
-  };
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!draggingRef.current || !displayQuad) return;
-    e.preventDefault();
-    const pos = getPointerPos(e);
-    const drag = draggingRef.current;
-
-    let newQuad: Quad;
-    if (drag.type === "corner") {
-      newQuad = {
-        ...displayQuad,
-        [drag.key]: {
-          x: Math.max(0, Math.min(containerWidth, pos.x - drag.offsetX)),
-          y: Math.max(0, Math.min(stageHeight, pos.y - drag.offsetY)),
-        },
-      };
-    } else {
-      const dx = pos.x - drag.lastX;
-      const dy = pos.y - drag.lastY;
-      newQuad = {
-        topLeft:     { x: displayQuad.topLeft.x + dx,     y: displayQuad.topLeft.y + dy },
-        topRight:    { x: displayQuad.topRight.x + dx,    y: displayQuad.topRight.y + dy },
-        bottomRight: { x: displayQuad.bottomRight.x + dx, y: displayQuad.bottomRight.y + dy },
-        bottomLeft:  { x: displayQuad.bottomLeft.x + dx,  y: displayQuad.bottomLeft.y + dy },
-      };
-      draggingRef.current = { type: "move", lastX: pos.x, lastY: pos.y };
-    }
-
-    if (isQuadConvex(newQuad)) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => setDisplayQuad(newQuad));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayQuad, containerWidth, stageHeight]);
-
-  const onPointerUp = () => {
-    if (!displayQuad) return;
-    cancelAnimationFrame(rafRef.current);
-    draggingRef.current = null;
-    setState({
-      placement: {
-        mode: "perspective",
-        quad: displayQuad,
-        rotationDeg: state.placement?.rotationDeg ?? 0,
-        canvasWidth: containerWidth,
-        canvasHeight: stageHeight,
-      },
-    });
-  };
-
-  const handleResetToRect = () => {
-    setPerspMode(false);
-  };
-
   // ── Calibration ────────────────────────────────────────────────────────────
 
-  const konvaStageHeight = konvaRef.current?.getStageHeight() ?? Math.round(containerWidth * 0.75);
-  const overlayHeight = calibPhase !== "off" ? photoHeight || Math.round(containerWidth * 0.75) : konvaStageHeight;
+  const overlayHeight = photoHeight || Math.round(containerWidth * 0.75);
 
   const handleUnitChange = (u: "cm" | "in") => {
     setUnit(u);
@@ -321,23 +139,15 @@ export default function PlacementStep() {
     const newW = w * pxPerUnit;
     const newH = h * pxPerUnit;
 
-    // Compute center of current painting from saved placement quad
+    // Bake the new size (centered around current painting position) into initialRectRef.
+    // PlacementCanvas will use this on next mount (after calib unmounts and remounts it).
     if (state.placement) {
       const q = state.placement.quad;
       const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
       const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
       const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-      initialRectRef.current = {
-        x: cx - newW / 2,
-        y: cy - newH / 2,
-        width: newW,
-        height: newH,
-        rotation: 0,
-      };
-    } else {
-      // No placement yet — KonvaPlacement will center at default, just set the size
-      initialRectRef.current = undefined;
+      initialRectRef.current = { x: cx - newW / 2, y: cy - newH / 2, width: newW, height: newH };
     }
 
     if (pointA && pointB) {
@@ -369,7 +179,7 @@ export default function PlacementStep() {
 
   const inCalib = calibPhase !== "off";
 
-  // ── Subtitle logic ─────────────────────────────────────────────────────────
+  // ── Subtitle ───────────────────────────────────────────────────────────────
 
   const subtitle = inCalib
     ? (calibPhase === "measure" ? t("calibration.instruction") : "")
@@ -390,7 +200,7 @@ export default function PlacementStep() {
         {subtitle}
       </p>
 
-      {/* Photo / canvas area */}
+      {/* Canvas area */}
       <div
         className="w-full mb-4"
         style={{ padding: 10, backgroundColor: "#fff", boxShadow: "0 4px 32px rgba(46,52,48,0.08)" }}
@@ -401,88 +211,69 @@ export default function PlacementStep() {
           style={{ cursor: calibPhase === "measure" ? "crosshair" : "default" }}
           onClick={handlePhotoClick}
         >
-          {/* Dimensions phase: show painting photo */}
+          {/* Dimensions phase: show painting photo for reference */}
           {calibPhase === "dimensions" && state.croppedPaintingUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={state.croppedPaintingUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
           )}
 
-          {/* ── Rectangle / Konva mode — always mounted, hidden when not active ── */}
-          <div style={{ display: calibPhase === "dimensions" ? "none" : perspMode ? "none" : "block" }}>
-            {state.wallPreviewUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={state.wallPreviewUrl}
-                alt=""
-                className="w-full block"
-                style={{ pointerEvents: "none" }}
-                onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
-              />
-            )}
+          {/* PlacementCanvas — hidden during calibration */}
+          {calibPhase !== "dimensions" && (
+            <div style={{ display: inCalib ? "none" : "block" }}>
+              {/* Wall image drives container height and calibration overlay positioning */}
+              {state.wallPreviewUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={state.wallPreviewUrl}
+                  alt=""
+                  className="w-full block"
+                  style={{ pointerEvents: "none", visibility: inCalib ? "visible" : "hidden", position: inCalib ? "relative" : "absolute" }}
+                  onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
+                />
+              )}
+              {containerWidth > 0 && (
+                <div style={{ position: inCalib ? "absolute" : "relative", inset: inCalib ? 0 : "auto" }}>
+                  <PlacementCanvas
+                    ref={canvasRef}
+                    wallUrl={state.wallPreviewUrl ?? ""}
+                    paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
+                    containerWidth={containerWidth}
+                    initialRect={initialRectRef.current}
+                    onTransformChange={(quad: Quad, canvasWidth: number, canvasHeight: number) => {
+                      setState({ placement: { quad, canvasWidth, canvasHeight } });
+                    }}
+                    onModeChange={(m) => setPerspMode(m === "perspective")}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-            {containerWidth > 0 && !inCalib && (
-              <div style={{ position: "absolute", inset: 0 }}>
-                <KonvaPlacement
-                  ref={konvaRef}
-                  wallUrl={state.wallPreviewUrl ?? ""}
-                  paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
+          {/* Calibration measure/distance overlay */}
+          {(calibPhase === "measure" || calibPhase === "distance") && (
+            <>
+              {state.wallPreviewUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={state.wallPreviewUrl}
+                  alt=""
+                  className="w-full block"
+                  style={{ pointerEvents: "none" }}
+                  onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
+                />
+              )}
+              {containerWidth > 0 && (
+                <CalibrationOverlay
+                  pointA={pointA}
+                  pointB={pointB}
                   containerWidth={containerWidth}
-                  hidePainting={false}
-                  initialRect={initialRectRef.current}
-                  onTransformChange={(x, y, width, height, rotation, canvasWidth, canvasHeight) => {
-                    const quad = rectToQuad(x, y, width, height, rotation);
-                    setState({
-                      placement: { mode: "basic", quad, rotationDeg: rotation, canvasWidth, canvasHeight },
-                    });
-                  }}
+                  stageHeight={overlayHeight}
+                  labelA={t("calibration.pointA")}
+                  labelB={t("calibration.pointB")}
                 />
-              </div>
-            )}
-
-            {(calibPhase === "measure" || calibPhase === "distance") && containerWidth > 0 && (
-              <CalibrationOverlay
-                pointA={pointA}
-                pointB={pointB}
-                containerWidth={containerWidth}
-                stageHeight={overlayHeight}
-                labelA={t("calibration.pointA")}
-                labelB={t("calibration.pointB")}
-              />
-            )}
-          </div>
-
-          {/* ── Perspective warp canvas — always mounted, hidden when not active ── */}
-          <div style={{ display: calibPhase !== "off" || !perspMode ? "none" : "block", position: "relative" }}>
-            {state.wallPreviewUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={state.wallPreviewUrl} alt="" className="w-full block" style={{ pointerEvents: "none" }} />
-            )}
-            <canvas
-              ref={perspCanvasRef}
-              className="block"
-              style={{ cursor: "crosshair", position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none" }}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-            />
-            {/* Corner handle indicators */}
-            {displayQuad && perspMode && (["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]).map((key) => {
-              const p = displayQuad[key];
-              return (
-                <div
-                  key={key}
-                  className="absolute pointer-events-none"
-                  style={{
-                    left: p.x - HANDLE_SIZE / 2,
-                    top: p.y - HANDLE_SIZE / 2,
-                    width: HANDLE_SIZE,
-                    height: HANDLE_SIZE,
-                    backgroundColor: "rgba(160,165,160,0.9)",
-                  }}
-                />
-              );
-            })}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -600,15 +391,15 @@ export default function PlacementStep() {
         </div>
       )}
 
-      {/* ── Normal mode buttons (always visible when not in calib) ── */}
+      {/* ── Normal mode buttons ── */}
       {!inCalib && (
         <>
           <div className="grid grid-cols-2 mb-6" style={{ gap: "1px", backgroundColor: "var(--outline-variant)" }}>
-            {/* Set Exact Size — disabled in persp mode */}
+            {/* Set Exact Size — disabled in perspective mode */}
             <button
               onClick={() => {
                 if (perspMode) return;
-                initialRectRef.current = undefined; // reset so next remount re-captures from current placement
+                initialRectRef.current = undefined;
                 setCalibPhase("measure");
               }}
               className="flex flex-col items-center justify-center py-5 gap-2"
@@ -626,14 +417,13 @@ export default function PlacementStep() {
               </span>
             </button>
 
-            {/* Adjust Corners / Reset to Rectangle toggle */}
+            {/* Adjust Perspective / Done toggle */}
             <button
               onClick={() => {
                 if (perspMode) {
-                  handleResetToRect();
+                  canvasRef.current?.exitPerspectiveMode();
                 } else {
-                  setPerspMode(true);
-                  if (state.placement) setDisplayQuad(state.placement.quad);
+                  canvasRef.current?.enterPerspectiveMode();
                 }
               }}
               className="flex flex-col items-center justify-center py-5 gap-2"
@@ -687,10 +477,7 @@ export default function PlacementStep() {
           <button
             onClick={() => goToStep("render")}
             className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 mb-3"
-            style={{
-              background: `linear-gradient(to right, var(--primary), var(--primary-dim))`,
-              color: "var(--on-primary)",
-            }}
+            style={{ background: `linear-gradient(to right, var(--primary), var(--primary-dim))`, color: "var(--on-primary)" }}
           >
             <span>{t("continueButton")}</span>
             <span>→</span>
