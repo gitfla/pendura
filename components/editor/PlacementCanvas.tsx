@@ -24,18 +24,27 @@ const SETTLE_DURATION = 200;
 type InteractionMode = "object" | "perspective";
 
 type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
+type EdgeKey = "top" | "right" | "bottom" | "left";
 
 type DragState =
   | { type: "move"; lastX: number; lastY: number }
   | { type: "scale"; key: HandleKey; anchor: Point }
   | { type: "rotate"; startAngle: number; centroid: Point }
-  | { type: "corner"; key: HandleKey; offsetX: number; offsetY: number };
+  | { type: "corner"; key: HandleKey; offsetX: number; offsetY: number }
+  | { type: "edge"; key: EdgeKey; perpX: number; perpY: number; fixedA: Point; fixedB: Point; movingA: Point; movingB: Point };
 
 const OPPOSITE: Record<HandleKey, HandleKey> = {
   topLeft: "bottomRight",
   topRight: "bottomLeft",
   bottomRight: "topLeft",
   bottomLeft: "topRight",
+};
+
+const EDGES: Record<EdgeKey, { a: HandleKey; b: HandleKey; oppA: HandleKey; oppB: HandleKey }> = {
+  top:    { a: "topLeft",    b: "topRight",    oppA: "bottomLeft",  oppB: "bottomRight" },
+  right:  { a: "topRight",   b: "bottomRight", oppA: "topLeft",     oppB: "bottomLeft"  },
+  bottom: { a: "bottomLeft", b: "bottomRight", oppA: "topLeft",     oppB: "topRight"    },
+  left:   { a: "topLeft",    b: "bottomLeft",  oppA: "topRight",    oppB: "bottomRight" },
 };
 
 function scaleFromPoint(p: Point, origin: Point, factor: number): Point {
@@ -273,6 +282,17 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
         ctx.fillRect(corner.x - HANDLE_SIZE / 2, corner.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
       }
 
+      // Edge midpoint handles
+      const edgeMids = [
+        { x: (tl.x + tr.x) / 2, y: (tl.y + tr.y) / 2 },
+        { x: (tr.x + br.x) / 2, y: (tr.y + br.y) / 2 },
+        { x: (bl.x + br.x) / 2, y: (bl.y + br.y) / 2 },
+        { x: (tl.x + bl.x) / 2, y: (tl.y + bl.y) / 2 },
+      ];
+      for (const m of edgeMids) {
+        ctx.fillRect(m.x - HANDLE_SIZE / 2, m.y - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE);
+      }
+
       // Rotate handle: above midpoint of top edge
       const topMidX = (tl.x + tr.x) / 2;
       const topMidY = (tl.y + tr.y) / 2;
@@ -379,10 +399,17 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     const perpX =  topEdgeDy / topEdgeLen;
     const perpY = -topEdgeDx / topEdgeLen;
     return [
+      // Corner scale handles
       { key: "topLeft",     x: q.topLeft.x,     y: q.topLeft.y },
       { key: "topRight",    x: q.topRight.x,    y: q.topRight.y },
       { key: "bottomRight", x: q.bottomRight.x, y: q.bottomRight.y },
       { key: "bottomLeft",  x: q.bottomLeft.x,  y: q.bottomLeft.y },
+      // Edge midpoint handles
+      { key: "top",    x: (q.topLeft.x    + q.topRight.x)    / 2, y: (q.topLeft.y    + q.topRight.y)    / 2 },
+      { key: "right",  x: (q.topRight.x   + q.bottomRight.x) / 2, y: (q.topRight.y   + q.bottomRight.y) / 2 },
+      { key: "bottom", x: (q.bottomLeft.x + q.bottomRight.x) / 2, y: (q.bottomLeft.y + q.bottomRight.y) / 2 },
+      { key: "left",   x: (q.topLeft.x    + q.bottomLeft.x)  / 2, y: (q.topLeft.y    + q.bottomLeft.y)  / 2 },
+      // Rotate handle
       { key: "rotate", x: topMidX + perpX * ROTATE_HANDLE_OFFSET, y: topMidY + perpY * ROTATE_HANDLE_OFFSET },
     ];
   };
@@ -407,8 +434,30 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
         return;
       }
 
-      // 2. Scale handles (quad corners)
-      const scaleHandles = handles.filter(h => h.key !== "rotate");
+      // 2. Edge midpoint handles
+      const edgeHandles = handles.filter(h => h.key in EDGES);
+      for (const h of edgeHandles) {
+        if (Math.abs(pos.x - h.x) <= HIT_RADIUS && Math.abs(pos.y - h.y) <= HIT_RADIUS) {
+          e.preventDefault();
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+          const eKey = h.key as EdgeKey;
+          const ed = EDGES[eKey];
+          const edgeDx = quad[ed.b].x - quad[ed.a].x;
+          const edgeDy = quad[ed.b].y - quad[ed.a].y;
+          const len = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy) || 1;
+          draggingRef.current = {
+            type: "edge", key: eKey,
+            perpX:  edgeDy / len,
+            perpY: -edgeDx / len,
+            fixedA: quad[ed.oppA], fixedB: quad[ed.oppB],
+            movingA: quad[ed.a],   movingB: quad[ed.b],
+          };
+          return;
+        }
+      }
+
+      // 3. Scale handles (quad corners)
+      const scaleHandles = handles.filter(h => !(h.key in EDGES) && h.key !== "rotate");
       for (const h of scaleHandles) {
         if (Math.abs(pos.x - h.x) <= HIT_RADIUS && Math.abs(pos.y - h.y) <= HIT_RADIUS) {
           e.preventDefault();
@@ -480,6 +529,28 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
         bottomRight: scaleFromPoint(quad.bottomRight, anchor, factor),
         bottomLeft:  scaleFromPoint(quad.bottomLeft,  anchor, factor),
       };
+    } else if (drag.type === "edge") {
+      const { key: eKey, perpX, perpY, fixedA, fixedB, movingA, movingB } = drag;
+      const midX = (movingA.x + movingB.x) / 2;
+      const midY = (movingA.y + movingB.y) / 2;
+      const dot = (pos.x - midX) * perpX + (pos.y - midY) * perpY;
+      const newA = { x: movingA.x + dot * perpX, y: movingA.y + dot * perpY };
+      const newB = { x: movingB.x + dot * perpX, y: movingB.y + dot * perpY };
+      if (euclideanDistance(newA, fixedA) < 20) return;
+      const ed = EDGES[eKey];
+      const corners = {
+        [ed.oppA]: fixedA,
+        [ed.oppB]: fixedB,
+        [ed.a]:    newA,
+        [ed.b]:    newB,
+      } as Record<HandleKey, Point>;
+      newQuad = {
+        topLeft:     corners.topLeft,
+        topRight:    corners.topRight,
+        bottomRight: corners.bottomRight,
+        bottomLeft:  corners.bottomLeft,
+      };
+      if (!isQuadConvex(newQuad)) return;
     } else if (drag.type === "rotate") {
       const c = quadCentroid(quad);
       const currentAngle = angleBetween(c, pos);
