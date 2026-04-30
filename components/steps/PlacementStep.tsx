@@ -3,12 +3,13 @@
 import { useRef, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
-import { euclideanDistance } from "@/lib/geometry";
-import { Point, Quad, FrameStyle } from "@/lib/types";
+import { euclideanDistance, computeHomography, screenPointToWallUV, projectArtworkOnWall } from "@/lib/geometry";
+import { Point, Quad, FrameStyle, GeometryType, InteractionMode, WallPlane } from "@/lib/types";
 import { applyFrame } from "@/lib/frameRenderer";
 import dynamic from "next/dynamic";
-import type { PlacementCanvasHandle } from "@/components/editor/PlacementCanvas";
+import type { PlacementCanvasHandle, WallConstraint } from "@/components/editor/PlacementCanvas";
 import CalibrationOverlay from "@/components/editor/CalibrationOverlay";
+import WallPolygonOverlay, { type WallPolygonPoints } from "@/components/editor/WallPolygonOverlay";
 
 const PlacementCanvas = dynamic(() => import("@/components/editor/PlacementCanvas"), {
   ssr: false,
@@ -23,16 +24,18 @@ const PlacementCanvas = dynamic(() => import("@/components/editor/PlacementCanva
 
 const STORAGE_KEY = "pendura_unit";
 
-type CalibrationPhase = "off" | "measure" | "distance" | "dimensions";
+type CalibrationPhase = "off" | "measure" | "distance" | "dimensions" | "wallDefine";
 
 export default function PlacementStep() {
   const t = useTranslations("placement");
-  const { state, setState, goPrev, goToStep } = useProject();
+  const { state, setState, updatePlacement, goPrev, goToStep } = useProject();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<PlacementCanvasHandle>(null);
 
   // initialRect for PlacementCanvas — baked at calibration apply time, stable ref
   const initialRectRef = useRef<{ x: number; y: number; width: number; height: number } | undefined>(undefined);
+  // Mutable ref for wall units during drag — avoids stale closure in onWallScale
+  const wallUnitsRef = useRef<{ w: number; h: number; u: number; v: number } | null>(null);
 
   const distanceInputRef = useRef<HTMLInputElement>(null);
   const widthInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +45,9 @@ export default function PlacementStep() {
   const [photoHeight, setPhotoHeight] = useState(0);
   const [calibPhase, setCalibPhase] = useState<CalibrationPhase>("off");
   const [perspMode, setPerspMode] = useState(false);
+  const [geometryType, setGeometryType] = useState<GeometryType>(
+    state.placement?.geometryType ?? GeometryType.Rect
+  );
 
   // Point picking for calibration
   const [pointA, setPointA] = useState<Point | null>(null);
@@ -57,6 +63,10 @@ export default function PlacementStep() {
   const [dimHeight, setDimHeight] = useState("");
 
   const [toast, setToast] = useState(false);
+
+  // Wall polygon definition
+  const [wallPoints, setWallPoints] = useState<WallPolygonPoints | null>(null);
+  const [wallPlacedCount, setWallPlacedCount] = useState(0);
 
   // Frame style
   const [frameStyle, setFrameStyle] = useState<FrameStyle>(state.frameStyle ?? "none");
@@ -108,6 +118,24 @@ export default function PlacementStep() {
   };
 
   const handlePhotoClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Wall define: tap to place corners one by one
+    if (calibPhase === "wallDefine" && wallPlacedCount < 4) {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * containerWidth;
+      const y = ((e.clientY - rect.top) / rect.height) * overlayHeight;
+      const next = wallPlacedCount + 1;
+      setWallPlacedCount(next);
+      // Build default spread if starting fresh, then fill in tapped corners in order
+      if (next === 1) {
+        setWallPoints({ tl: { x, y }, tr: { x: x + 60, y }, br: { x: x + 60, y: y + 40 }, bl: { x, y: y + 40 } });
+      } else if (wallPoints) {
+        const keys = ["tl", "tr", "br", "bl"] as const;
+        setWallPoints({ ...wallPoints, [keys[wallPlacedCount]]: { x, y } });
+      }
+      return;
+    }
     if (calibPhase !== "measure") return;
     const el = containerRef.current;
     if (!el) return;
@@ -171,6 +199,146 @@ export default function PlacementStep() {
     setDimHeight("");
   };
 
+  // ── Wall define ─────────────────────────────────────────────────────────────
+
+  const handleWallDefineStart = () => {
+    // Default polygon: inset rectangle covering ~60% of the canvas
+    const margin = 0.2;
+    setWallPoints({
+      tl: { x: containerWidth * margin,            y: overlayHeight * margin },
+      tr: { x: containerWidth * (1 - margin),      y: overlayHeight * margin },
+      br: { x: containerWidth * (1 - margin),      y: overlayHeight * (1 - margin) },
+      bl: { x: containerWidth * margin,            y: overlayHeight * (1 - margin) },
+    });
+    setWallPlacedCount(4);
+    setCalibPhase("wallDefine");
+  };
+
+  const handleWallDefineConfirm = () => {
+    if (!wallPoints) return;
+    // Sort corners geometrically so the homography is correct regardless of how the user
+    // dragged the handles. Strategy: centroid-relative angle sort, then assign TL/TR/BR/BL.
+    const rawCorners = [wallPoints.tl, wallPoints.tr, wallPoints.br, wallPoints.bl];
+    const cx = rawCorners.reduce((s, p) => s + p.x, 0) / 4;
+    const cy = rawCorners.reduce((s, p) => s + p.y, 0) / 4;
+    // Sort by angle from centroid: top-left ≈ 225°, top-right ≈ 315°, bottom-right ≈ 45°, bottom-left ≈ 135°
+    const sorted = [...rawCorners].sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+    // atan2 order (CCW from right): right, top-right, top, top-left, left, bottom-left, bottom, bottom-right
+    // After sort ascending by angle: right-ish (~0°) first. We want TL, TR, BR, BL order.
+    // Simpler: split into top-half and bottom-half by y relative to centroid.
+    const top    = rawCorners.filter(p => p.y <= cy).sort((a, b) => a.x - b.x); // left→right
+    const bottom = rawCorners.filter(p => p.y >  cy).sort((a, b) => a.x - b.x); // left→right
+    // Fallback: if all 4 on same side of centroid (degenerate), use raw order
+    const tl = top[0]    ?? sorted[0];
+    const tr = top[1]    ?? sorted[1];
+    const br = bottom[1] ?? sorted[2];
+    const bl = bottom[0] ?? sorted[3];
+    const polygon: [Point, Point, Point, Point] = [tl, tr, br, bl];
+    // Validate homography is computable (non-degenerate polygon)
+    try {
+      const uvCorners: [Point, Point, Point, Point] = [
+        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 },
+      ];
+      computeHomography(uvCorners, polygon);
+    } catch {
+      return; // degenerate polygon, don't save
+    }
+    const wallPlane: WallPlane = {
+      id: crypto.randomUUID?.() ?? `wall-${Date.now()}`,
+      polygon,
+    };
+
+    setState({ wallPlane });
+    setCalibPhase("off");
+    // Auto-attach immediately after wall is defined — pass wallPlane directly since state hasn't updated yet
+    handleWallAttach(wallPlane);
+  };
+
+  const handleWallDefineCancel = () => {
+    setWallPoints(null);
+    setWallPlacedCount(0);
+    setCalibPhase("off");
+  };
+
+  // ── Wall attach (4B) ────────────────────────────────────────────────────────
+
+  const handleWallAttach = (wallPlaneOverride?: WallPlane) => {
+    wallUnitsRef.current = null; // reset so onWallScale re-initialises from fresh state
+    const wallPlane = wallPlaneOverride ?? state.wallPlane;
+    const placement = state.placement;
+    if (!wallPlane || !placement) return;
+
+    // If already wall-attached, re-project using stored planeCenter + wall units (fully idempotent)
+    if (geometryType === GeometryType.WallAttachedQuad && placement.widthWallUnits != null && placement.heightWallUnits != null && placement.planeCenter != null) {
+      const { widthWallUnits, heightWallUnits, planeCenter } = placement;
+      const newQuad = projectArtworkOnWall(wallPlane, planeCenter, widthWallUnits, heightWallUnits);
+      setGeometryType(GeometryType.WallAttachedQuad);
+      canvasRef.current?.setQuad(newQuad);
+      return;
+    }
+
+    // First attach: use painting's canvas pixel dimensions for aspect ratio (not the screen quad,
+    // which may be warped after corner editing). Fall back to 1:1 if unavailable.
+    const { canvasWidth = 1, canvasHeight = 1 } = placement;
+    const paintingAspect = canvasHeight > 0 ? canvasWidth / canvasHeight : 1;
+
+    const widthWallUnits  = 0.25;
+    const heightWallUnits = 0.25 / paintingAspect;
+
+    // Always center on wall on first attach — painting is rarely over the wall already
+    const clampedCenter = { u: 0.5, v: 0.5 };
+
+    // Project artwork onto wall plane
+    const newQuad = projectArtworkOnWall(wallPlane, clampedCenter, widthWallUnits, heightWallUnits);
+
+    // Derive real dimensions if wall is already calibrated
+    const cal = wallPlane.calibration;
+    const realWidth  = cal ? widthWallUnits  * cal.cmPerWallUnit : undefined;
+    const realHeight = cal ? heightWallUnits * cal.cmPerWallUnit : undefined;
+
+    const newPlacement = {
+      ...placement,
+      quad: newQuad,
+      geometryType: GeometryType.WallAttachedQuad,
+      surfaceAttachment: wallPlane.id,
+      planeCenter: clampedCenter,
+      widthWallUnits,
+      heightWallUnits,
+      realWidth,
+      realHeight,
+    };
+
+    setGeometryType(GeometryType.WallAttachedQuad);
+    setState({ placement: newPlacement });
+    canvasRef.current?.setQuad(newQuad);
+  };
+
+  const handleResetToRect = () => {
+    const placement = state.placement;
+    if (!placement) return;
+    const q = placement.quad;
+    const xs = [q.topLeft.x, q.topRight.x, q.bottomRight.x, q.bottomLeft.x];
+    const ys = [q.topLeft.y, q.topRight.y, q.bottomRight.y, q.bottomLeft.y];
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const rectQuad: Quad = {
+      topLeft:     { x: minX, y: minY },
+      topRight:    { x: maxX, y: minY },
+      bottomRight: { x: maxX, y: maxY },
+      bottomLeft:  { x: minX, y: maxY },
+    };
+    setGeometryType(GeometryType.Rect);
+    updatePlacement({
+      quad: rectQuad,
+      geometryType: GeometryType.Rect,
+      surfaceAttachment: null,
+      planeCenter: undefined,
+      widthWallUnits: undefined,
+      heightWallUnits: undefined,
+    });
+    canvasRef.current?.setQuad(rectQuad);
+  };
+
   const distNum = parseFloat(distance);
   const canConfirm = pointA && pointB && distNum > 0;
   const dimW = parseFloat(dimWidth);
@@ -178,16 +346,23 @@ export default function PlacementStep() {
   const canApply = dimW > 0 && dimH > 0;
 
   const inCalib = calibPhase !== "off";
+  const inWallDefine = calibPhase === "wallDefine";
 
   // ── Subtitle ───────────────────────────────────────────────────────────────
 
-  const subtitle = inCalib
+  const subtitle = inWallDefine
+    ? t("wallDefine.instruction")
+    : inCalib
     ? (calibPhase === "measure" ? t("calibration.instruction") : "")
     : perspMode
     ? t("perspSubtitle")
     : t("subtitle");
 
-  const title = inCalib ? t("calibrationTitle") : t("title");
+  const title = inWallDefine
+    ? t("wallDefine.title")
+    : inCalib
+    ? t("calibrationTitle")
+    : t("title");
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -239,14 +414,103 @@ export default function PlacementStep() {
                     paintingUrl={state.framedPaintingUrl ?? state.croppedPaintingUrl ?? ""}
                     containerWidth={containerWidth}
                     initialRect={initialRectRef.current}
+                    wallConstraint={(() => {
+                      const p = state.placement;
+                      if (
+                        geometryType === GeometryType.WallAttachedQuad &&
+                        state.wallPlane &&
+                        p?.widthWallUnits != null &&
+                        p?.heightWallUnits != null
+                      ) {
+                        return {
+                          wallPlane: state.wallPlane,
+                          widthWallUnits: p.widthWallUnits,
+                          heightWallUnits: p.heightWallUnits,
+                        } satisfies WallConstraint;
+                      }
+                      return undefined;
+                    })()}
                     onTransformChange={(quad: Quad, canvasWidth: number, canvasHeight: number) => {
-                      setState({ placement: { quad, canvasWidth, canvasHeight } });
+                      // Use updatePlacement (functional updater) to avoid stale-closure overwriting
+                      // wall-plane fields (widthWallUnits, heightWallUnits, etc.) set by handleWallAttach.
+                      // When wall-attached, also update planeCenter from the new quad centroid.
+                      if (geometryType === GeometryType.WallAttachedQuad && state.wallPlane) {
+                        const cx = (quad.topLeft.x + quad.topRight.x + quad.bottomRight.x + quad.bottomLeft.x) / 4;
+                        const cy = (quad.topLeft.y + quad.topRight.y + quad.bottomRight.y + quad.bottomLeft.y) / 4;
+                        updatePlacement({
+                          quad, canvasWidth, canvasHeight, geometryType,
+                          planeCenter: screenPointToWallUV(state.wallPlane, { x: cx, y: cy }),
+                        });
+                      } else {
+                        updatePlacement({ quad, canvasWidth, canvasHeight, geometryType });
+                      }
                     }}
-                    onModeChange={(m) => setPerspMode(m === "perspective")}
+                    onWallDetach={() => {
+                      wallUnitsRef.current = null;
+                      setGeometryType(GeometryType.FreeQuad);
+                      updatePlacement({ geometryType: GeometryType.FreeQuad, surfaceAttachment: null, planeCenter: undefined, widthWallUnits: undefined, heightWallUnits: undefined });
+                    }}
+                    onWallScale={(factor, axis) => {
+                      const wallPlane = state.wallPlane;
+                      if (!wallPlane) return;
+                      // Initialise ref from state on first call of a drag gesture
+                      const p = state.placement;
+                      if (!wallUnitsRef.current) {
+                        if (!p?.widthWallUnits || !p?.heightWallUnits || !p?.planeCenter) return;
+                        wallUnitsRef.current = { w: p.widthWallUnits, h: p.heightWallUnits, u: p.planeCenter.u, v: p.planeCenter.v };
+                      }
+                      const cur = wallUnitsRef.current;
+                      const newW = axis === "height" ? cur.w : cur.w * factor;
+                      const newH = axis === "width"  ? cur.h : cur.h * factor;
+                      const halfW = newW / 2;
+                      const halfH = newH / 2;
+                      const clampedU = Math.max(halfW, Math.min(1 - halfW, cur.u));
+                      const clampedV = Math.max(halfH, Math.min(1 - halfH, cur.v));
+                      wallUnitsRef.current = { w: newW, h: newH, u: clampedU, v: clampedV };
+                      const planeCenter = { u: clampedU, v: clampedV };
+                      const newQuad = projectArtworkOnWall(wallPlane, planeCenter, newW, newH);
+                      canvasRef.current?.setQuad(newQuad);
+                      updatePlacement({ quad: newQuad, widthWallUnits: newW, heightWallUnits: newH, planeCenter });
+                    }}
+                    onModeChange={(m) => {
+                      const isPersp = m === InteractionMode.Perspective;
+                      setPerspMode(isPersp);
+                      if (!isPersp && geometryType === GeometryType.Rect) {
+                        setGeometryType(GeometryType.FreeQuad);
+                        if (state.placement) {
+                          setState({
+                            placement: { ...state.placement, geometryType: GeometryType.FreeQuad },
+                          });
+                        }
+                      }
+                    }}
                   />
                 </div>
               )}
             </div>
+          )}
+
+          {/* Wall define overlay */}
+          {inWallDefine && containerWidth > 0 && (
+            <>
+              {state.wallPreviewUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={state.wallPreviewUrl}
+                  alt=""
+                  className="w-full block"
+                  style={{ pointerEvents: "none" }}
+                  onLoad={(e) => setPhotoHeight((e.target as HTMLImageElement).offsetHeight)}
+                />
+              )}
+              <WallPolygonOverlay
+                points={wallPlacedCount >= 4 ? wallPoints : null}
+                placedCount={wallPlacedCount}
+                containerWidth={containerWidth}
+                stageHeight={overlayHeight}
+                onChange={setWallPoints}
+              />
+            </>
           )}
 
           {/* Calibration measure/distance overlay */}
@@ -395,18 +659,18 @@ export default function PlacementStep() {
       {!inCalib && (
         <>
           <div className="grid grid-cols-2 mb-6" style={{ gap: "1px", backgroundColor: "var(--outline-variant)" }}>
-            {/* Set Exact Size — disabled in perspective mode */}
+            {/* Set Exact Size — disabled in perspective mode or freeQuad */}
             <button
               onClick={() => {
-                if (perspMode) return;
+                if (perspMode || geometryType === GeometryType.FreeQuad) return;
                 initialRectRef.current = undefined;
                 setCalibPhase("measure");
               }}
               className="flex flex-col items-center justify-center py-5 gap-2"
               style={{
                 backgroundColor: "var(--surface-container-low)",
-                opacity: perspMode ? 0.4 : 1,
-                cursor: perspMode ? "default" : "pointer",
+                opacity: perspMode || geometryType === GeometryType.FreeQuad ? 0.4 : 1,
+                cursor: perspMode || geometryType === GeometryType.FreeQuad ? "default" : "pointer",
               }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
@@ -417,7 +681,7 @@ export default function PlacementStep() {
               </span>
             </button>
 
-            {/* Adjust Perspective / Done toggle */}
+            {/* Adjust Corners / Done toggle */}
             <button
               onClick={() => {
                 if (perspMode) {
@@ -426,7 +690,7 @@ export default function PlacementStep() {
                   canvasRef.current?.enterPerspectiveMode();
                 }
               }}
-              className="flex flex-col items-center justify-center py-5 gap-2"
+              className="flex flex-col items-center justify-center py-5 gap-2 relative"
               style={{ backgroundColor: perspMode ? "var(--surface-container-high)" : "var(--surface-container-low)" }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
@@ -439,8 +703,66 @@ export default function PlacementStep() {
               <span className="text-xs tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
                 {perspMode ? t("resetToRect") : t("adjustCorners")}
               </span>
+              {geometryType === GeometryType.WallAttachedQuad && (
+                <span
+                  className="absolute top-2 right-2 text-[9px] tracking-widest uppercase"
+                  style={{ color: "var(--on-surface-variant)", opacity: 0.6 }}
+                >
+                  {t("wallAttached")}
+                </span>
+              )}
             </button>
           </div>
+
+          {/* Match wall / Attach to wall — only shown in corner edit mode */}
+          {perspMode && (
+            <div className="mb-6" style={{ borderTop: "1px solid var(--outline-variant)" }}>
+              {/* Define / redefine wall polygon */}
+              <button
+                onClick={handleWallDefineStart}
+                className="w-full flex flex-col items-center justify-center py-4 gap-2"
+                style={{ backgroundColor: state.wallPlane ? "var(--surface-container-high)" : "var(--surface-container-low)" }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
+                  <polygon points="3,18 8,6 16,8 21,18" />
+                </svg>
+                <span className="text-xs tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
+                  {state.wallPlane ? t("wallDefine.redefine") : t("wallDefine.matchWall")}
+                </span>
+              </button>
+
+              {/* Attach artwork to defined wall — only when wall exists */}
+              {state.wallPlane && (
+                <button
+                  onClick={() => handleWallAttach()}
+                  className="w-full flex flex-col items-center justify-center py-4 gap-2"
+                  style={{ backgroundColor: "var(--surface-container-low)", borderTop: "1px solid var(--outline-variant)" }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ color: "var(--on-surface-variant)" }}>
+                    <rect x="4" y="4" width="16" height="16" />
+                    <path d="M4 4 L8 8 M20 4 L16 8 M20 20 L16 16 M4 20 L8 16" />
+                  </svg>
+                  <span className="text-xs tracking-widest uppercase font-medium" style={{ color: "var(--on-surface-variant)" }}>
+                    {t("wallDefine.reattachToWall")}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Reset to rectangle — shown when quad is warped or wall-attached */}
+          {geometryType !== GeometryType.Rect && !perspMode && (
+            <button
+              onClick={handleResetToRect}
+              className="w-full flex items-center justify-center gap-2 py-3 mb-4 text-xs tracking-widest uppercase"
+              style={{ color: "var(--on-surface-variant)", borderTop: "1px solid var(--outline-variant)" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="1" />
+              </svg>
+              {t("resetToRect")}
+            </button>
+          )}
 
           {/* Frame selector */}
           <div className="mb-6">
@@ -494,8 +816,34 @@ export default function PlacementStep() {
         </>
       )}
 
+      {/* ── Wall define action buttons ── */}
+      {inWallDefine && (
+        <>
+          <button
+            onClick={handleWallDefineConfirm}
+            disabled={!wallPoints}
+            className="w-full py-4 text-xs tracking-widest uppercase font-medium flex items-center justify-between px-6 mb-3"
+            style={{
+              background: wallPoints ? `linear-gradient(to right, var(--primary), var(--primary-dim))` : "var(--outline-variant)",
+              color: wallPoints ? "var(--on-primary)" : "var(--on-surface-variant)",
+            }}
+          >
+            <span>{t("wallDefine.confirm")}</span>
+            <span>→</span>
+          </button>
+          <button
+            onClick={handleWallDefineCancel}
+            className="w-full py-3 text-xs tracking-widest uppercase flex items-center gap-2 px-6"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            <span>←</span>
+            <span>{t("wallDefine.cancel")}</span>
+          </button>
+        </>
+      )}
+
       {/* ── Calibration action buttons ── */}
-      {inCalib && (
+      {inCalib && !inWallDefine && (
         <>
           {calibPhase === "distance" && (
             <button

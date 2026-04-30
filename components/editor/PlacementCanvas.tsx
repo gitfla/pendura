@@ -9,19 +9,19 @@ import {
   rotateQuadAroundCentroid,
   isAxisAligned,
   euclideanDistance,
+  screenPointToWallUV,
+  projectArtworkOnWall,
 } from "@/lib/geometry";
-import type { Quad, Point } from "@/lib/types";
+import { type Quad, type Point, InteractionMode, type WallPlane } from "@/lib/types";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const HANDLE_SIZE = 10;
-const HIT_RADIUS = 24;
+const HIT_RADIUS = 16;
 const ROTATE_HANDLE_OFFSET = 36;
 const SETTLE_DURATION = 200;
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-type InteractionMode = "object" | "perspective";
 
 type HandleKey = "topLeft" | "topRight" | "bottomRight" | "bottomLeft";
 type EdgeKey = "top" | "right" | "bottom" | "left";
@@ -55,7 +55,14 @@ export type PlacementCanvasHandle = {
   enterPerspectiveMode: () => void;
   exitPerspectiveMode: () => void;
   setInitialRect: (rect: { x: number; y: number; width: number; height: number }) => void;
+  setQuad: (quad: Quad) => void;
   getCanvasHeight: () => number;
+};
+
+export type WallConstraint = {
+  wallPlane: WallPlane;
+  widthWallUnits: number;
+  heightWallUnits: number;
 };
 
 type Props = {
@@ -63,8 +70,11 @@ type Props = {
   paintingUrl: string;
   containerWidth: number;
   initialRect?: { x: number; y: number; width: number; height: number };
+  wallConstraint?: WallConstraint;
   onTransformChange: (quad: Quad, canvasWidth: number, canvasHeight: number) => void;
   onModeChange?: (mode: InteractionMode) => void;
+  onWallDetach?: () => void;  // called when corner-edit drag happens while wall-attached
+  onWallScale?: (factor: number, axis: "both" | "width" | "height") => void;
 };
 
 // ── Image loader hook ──────────────────────────────────────────────────────
@@ -104,7 +114,7 @@ function quadBBox(quad: Quad): { minX: number; minY: number; maxX: number; maxY:
 // ── Component ──────────────────────────────────────────────────────────────
 
 const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function PlacementCanvas(
-  { wallUrl, paintingUrl, containerWidth, initialRect, onTransformChange, onModeChange },
+  { wallUrl, paintingUrl, containerWidth, initialRect, wallConstraint, onTransformChange, onModeChange, onWallDetach, onWallScale },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -117,7 +127,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     : Math.round(containerWidth * 0.75);
 
   const [quad, setQuad] = useState<Quad | null>(null);
-  const [mode, setMode] = useState<InteractionMode>("object");
+  const [mode, setMode] = useState<InteractionMode>(InteractionMode.Object);
   const draggingRef = useRef<DragState | null>(null);
   const rafRef = useRef<number>(0);
 
@@ -184,22 +194,33 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     ) {
       const sx = containerWidth / prevContainerWidthRef.current;
       const sy = newH / prevStageHeightRef.current;
+      // Compute scaled quad without calling setState inside setQuad updater;
+      // notifyResizeRef triggers onTransformChange in a follow-up effect
+      notifyResizeRef.current = true;
       setQuad((prev) => {
         if (!prev) return prev;
-        const scaled: Quad = {
+        return {
           topLeft:     { x: prev.topLeft.x * sx,     y: prev.topLeft.y * sy },
           topRight:    { x: prev.topRight.x * sx,    y: prev.topRight.y * sy },
           bottomRight: { x: prev.bottomRight.x * sx, y: prev.bottomRight.y * sy },
           bottomLeft:  { x: prev.bottomLeft.x * sx,  y: prev.bottomLeft.y * sy },
         };
-        onTransformChange(scaled, containerWidth, newH);
-        return scaled;
       });
     }
     prevContainerWidthRef.current = containerWidth;
     prevStageHeightRef.current = newH;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerWidth, wallImg]);
+
+  // ── Notify parent after resize-driven quad rescale ─────────────────────
+
+  const notifyResizeRef = useRef(false);
+  useEffect(() => {
+    if (!notifyResizeRef.current) return;
+    notifyResizeRef.current = false;
+    if (quad) onTransformChange(quad, containerWidth, stageHeight);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quad]);
 
   // ── Draw ───────────────────────────────────────────────────────────────
 
@@ -238,7 +259,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
 
     const { topLeft: tl, topRight: tr, bottomRight: br, bottomLeft: bl } = quad;
 
-    if (mode === "perspective") {
+    if (mode === InteractionMode.Perspective) {
       const alpha = settleProgress < 1 ? settleProgress : 1;
       ctx.globalAlpha = alpha;
 
@@ -325,8 +346,8 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
   useImperativeHandle(ref, () => ({
     getCanvasHeight() { return stageHeight; },
     enterPerspectiveMode() {
-      setMode("perspective");
-      onModeChange?.("perspective");
+      setMode(InteractionMode.Perspective);
+      onModeChange?.(InteractionMode.Perspective);
     },
     exitPerspectiveMode() {
       // Soft settle: perspective handles fade out, bbox fades in
@@ -340,12 +361,16 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
         if (t < 1) settleRafRef.current = requestAnimationFrame(animate);
       };
       settleRafRef.current = requestAnimationFrame(animate);
-      setMode("object");
-      onModeChange?.("object");
+      setMode(InteractionMode.Object);
+      onModeChange?.(InteractionMode.Object);
     },
     setInitialRect(rect) {
       const q = quadFromRect(rect.x, rect.y, rect.width, rect.height);
       initializedRef.current = true;
+      setQuad(q);
+      onTransformChange(q, containerWidth, stageHeight);
+    },
+    setQuad(q: Quad) {
       setQuad(q);
       onTransformChange(q, containerWidth, stageHeight);
     },
@@ -362,7 +387,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     const canvas = canvasRef.current;
     if (!canvas || !quad) { return; }
 
-    if (mode === "object") {
+    if (mode === InteractionMode.Object) {
       const handles = getObjectHandles(quad);
       const rotateH = handles.find(h => h.key === "rotate")!;
       if (euclideanDistance(pos, { x: rotateH.x, y: rotateH.y }) <= HIT_RADIUS) {
@@ -371,7 +396,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       }
       const scaleHandles = handles.filter(h => h.key !== "rotate");
       for (const h of scaleHandles) {
-        if (Math.abs(pos.x - h.x) <= HIT_RADIUS && Math.abs(pos.y - h.y) <= HIT_RADIUS) {
+        if (euclideanDistance(pos, { x: h.x, y: h.y }) <= HIT_RADIUS) {
           canvas.style.cursor = "crosshair";
           return;
         }
@@ -381,7 +406,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       // Perspective mode
       for (const key of ["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]) {
         const p = quad[key];
-        if (Math.abs(pos.x - p.x) <= HIT_RADIUS && Math.abs(pos.y - p.y) <= HIT_RADIUS) {
+        if (euclideanDistance(pos, p) <= HIT_RADIUS) {
           canvas.style.cursor = "crosshair";
           return;
         }
@@ -420,7 +445,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     if (!quad) return;
     const pos = getPos(e);
 
-    if (mode === "object") {
+    if (mode === InteractionMode.Object) {
       const handles = getObjectHandles(quad);
       const rotateH = handles.find(h => h.key === "rotate")!;
 
@@ -437,7 +462,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       // 2. Edge midpoint handles
       const edgeHandles = handles.filter(h => h.key in EDGES);
       for (const h of edgeHandles) {
-        if (Math.abs(pos.x - h.x) <= HIT_RADIUS && Math.abs(pos.y - h.y) <= HIT_RADIUS) {
+        if (euclideanDistance(pos, { x: h.x, y: h.y }) <= HIT_RADIUS) {
           e.preventDefault();
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           const eKey = h.key as EdgeKey;
@@ -459,7 +484,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       // 3. Scale handles (quad corners)
       const scaleHandles = handles.filter(h => !(h.key in EDGES) && h.key !== "rotate");
       for (const h of scaleHandles) {
-        if (Math.abs(pos.x - h.x) <= HIT_RADIUS && Math.abs(pos.y - h.y) <= HIT_RADIUS) {
+        if (euclideanDistance(pos, { x: h.x, y: h.y }) <= HIT_RADIUS) {
           e.preventDefault();
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           const key = h.key as HandleKey;
@@ -478,7 +503,7 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       // Perspective mode
       for (const key of ["topLeft", "topRight", "bottomRight", "bottomLeft"] as HandleKey[]) {
         const p = quad[key];
-        if (Math.abs(pos.x - p.x) <= HIT_RADIUS && Math.abs(pos.y - p.y) <= HIT_RADIUS) {
+        if (euclideanDistance(pos, p) <= HIT_RADIUS) {
           e.preventDefault();
           (e.target as HTMLElement).setPointerCapture(e.pointerId);
           draggingRef.current = { type: "corner", key, offsetX: pos.x - p.x, offsetY: pos.y - p.y };
@@ -507,15 +532,28 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
     let newQuad: Quad;
 
     if (drag.type === "move") {
-      const dx = pos.x - drag.lastX;
-      const dy = pos.y - drag.lastY;
-      newQuad = {
-        topLeft:     { x: quad.topLeft.x + dx,     y: quad.topLeft.y + dy },
-        topRight:    { x: quad.topRight.x + dx,    y: quad.topRight.y + dy },
-        bottomRight: { x: quad.bottomRight.x + dx, y: quad.bottomRight.y + dy },
-        bottomLeft:  { x: quad.bottomLeft.x + dx,  y: quad.bottomLeft.y + dy },
-      };
-      draggingRef.current = { type: "move", lastX: pos.x, lastY: pos.y };
+      if (wallConstraint) {
+        // Wall-aware move: map new screen point to wall UV, clamp to full-fit bounds, reproject
+        const { wallPlane, widthWallUnits, heightWallUnits } = wallConstraint;
+        const rawUV = screenPointToWallUV(wallPlane, pos);
+        const halfW = widthWallUnits / 2;
+        const halfH = heightWallUnits / 2;
+        const clampedU = Math.max(halfW, Math.min(1 - halfW, rawUV.u));
+        const clampedV = Math.max(halfH, Math.min(1 - halfH, rawUV.v));
+        newQuad = projectArtworkOnWall(wallPlane, { u: clampedU, v: clampedV }, widthWallUnits, heightWallUnits);
+        // Keep lastX/lastY tracking (used only for non-wall moves, but still update)
+        draggingRef.current = { type: "move", lastX: pos.x, lastY: pos.y };
+      } else {
+        const dx = pos.x - drag.lastX;
+        const dy = pos.y - drag.lastY;
+        newQuad = {
+          topLeft:     { x: quad.topLeft.x + dx,     y: quad.topLeft.y + dy },
+          topRight:    { x: quad.topRight.x + dx,    y: quad.topRight.y + dy },
+          bottomRight: { x: quad.bottomRight.x + dx, y: quad.bottomRight.y + dy },
+          bottomLeft:  { x: quad.bottomLeft.x + dx,  y: quad.bottomLeft.y + dy },
+        };
+        draggingRef.current = { type: "move", lastX: pos.x, lastY: pos.y };
+      }
     } else if (drag.type === "scale") {
       const { key, anchor } = drag;
       const origDist = euclideanDistance(anchor, quad[key]);
@@ -523,6 +561,10 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       const newDist = euclideanDistance(anchor, pos);
       if (newDist < 20) return;
       const factor = newDist / origDist;
+      if (wallConstraint && onWallScale) {
+        onWallScale(factor, "both");
+        return;
+      }
       newQuad = {
         topLeft:     scaleFromPoint(quad.topLeft,     anchor, factor),
         topRight:    scaleFromPoint(quad.topRight,    anchor, factor),
@@ -537,6 +579,15 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       const newA = { x: movingA.x + dot * perpX, y: movingA.y + dot * perpY };
       const newB = { x: movingB.x + dot * perpX, y: movingB.y + dot * perpY };
       if (euclideanDistance(newA, fixedA) < 20) return;
+      if (wallConstraint && onWallScale) {
+        const oldDist = euclideanDistance(movingA, fixedA);
+        const newDist = euclideanDistance(newA, fixedA);
+        if (oldDist === 0) return;
+        const factor = newDist / oldDist;
+        const axis: "width" | "height" = (eKey === "left" || eKey === "right") ? "width" : "height";
+        onWallScale(factor, axis);
+        return;
+      }
       const ed = EDGES[eKey];
       const corners = {
         [ed.oppA]: fixedA,

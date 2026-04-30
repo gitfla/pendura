@@ -209,8 +209,8 @@ export async function applyFrame(
   const pw = img.naturalWidth;
   const ph = img.naturalHeight;
 
-  // Frame width: 7% of shorter side, clamped [20, 120]
-  const frameSize = Math.round(Math.max(20, Math.min(120, Math.min(pw, ph) * 0.07)));
+  // Frame width: 5% of shorter side, clamped [20, 120]
+  const frameSize = Math.round(Math.max(20, Math.min(120, Math.min(pw, ph) * 0.05)));
 
   const fw = pw + 2 * frameSize;
   const fh = ph + 2 * frameSize;

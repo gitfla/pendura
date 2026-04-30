@@ -93,6 +93,17 @@
       "paintingDimensions": "Dimensões da Obra",
       "suggestedApplied": "Tamanho sugerido aplicado"
     },
+    "wallAttached": "parede ·",
+    "wallDefine": {
+      "title": "Ajustar à Parede",
+      "instruction": "Arraste os cantos para delimitar a superfície da parede.",
+      "matchWall": "Ajustar à Parede",
+      "redefine": "Redefinir Parede",
+      "confirm": "Confirmar Parede",
+      "cancel": "Cancelar",
+      "attachToWall": "Fixar na Parede",
+      "reattachToWall": "Refixar na Parede"
+    },
     "frame": {
       "label": "Moldura",
       "none": "Nenhuma",

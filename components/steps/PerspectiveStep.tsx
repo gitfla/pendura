@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
-import { Quad, Point } from "@/lib/types";
+import { Quad, Point, GeometryType } from "@/lib/types";
 import { isQuadConvex, rectToQuad } from "@/lib/geometry";
 import { clientPerspectiveWarp } from "@/lib/clientWarp";
 
@@ -174,9 +174,12 @@ export default function PerspectiveStep() {
     draggingRef.current = null;
     setState({
       placement: {
+        ...(state.placement ?? { geometryType: GeometryType.Rect, surfaceAttachment: null }),
         quad: displayQuad,
         canvasWidth: containerWidth,
         canvasHeight: stageHeight,
+        geometryType: GeometryType.FreeQuad,
+        surfaceAttachment: null,
       },
     });
   };
@@ -196,6 +199,13 @@ export default function PerspectiveStep() {
       placement: {
         ...state.placement,
         quad: rectQuad,
+        geometryType: GeometryType.Rect,
+        surfaceAttachment: null,
+        planeCenter: undefined,
+        widthWallUnits: undefined,
+        heightWallUnits: undefined,
+        realWidth: undefined,
+        realHeight: undefined,
       },
     });
   };

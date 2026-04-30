@@ -93,6 +93,17 @@
       "paintingDimensions": "Painting Dimensions",
       "suggestedApplied": "Suggested size applied"
     },
+    "wallAttached": "wall ·",
+    "wallDefine": {
+      "title": "Match Wall",
+      "instruction": "Drag the corners to outline the wall surface.",
+      "matchWall": "Match Wall",
+      "redefine": "Redefine Wall",
+      "confirm": "Confirm Wall",
+      "cancel": "Cancel",
+      "attachToWall": "Attach to Wall",
+      "reattachToWall": "Reattach to Wall"
+    },
     "frame": {
       "label": "Frame",
       "none": "None",

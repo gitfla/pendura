@@ -13,6 +13,7 @@ const initialState: ProjectState = {
   croppedPaintingUrl: null,
   cropRect: null,
   placement: null,
+  wallPlane: null,
   calibration: null,
   paintingDimensions: null,
   frameStyle: "none",
@@ -23,6 +24,7 @@ const initialState: ProjectState = {
 type ProjectContextType = {
   state: ProjectState;
   setState: (updates: Partial<ProjectState>) => void;
+  updatePlacement: (updates: Partial<NonNullable<ProjectState["placement"]>>) => void;
   currentStep: Step;
   maxReachedStep: Step;
   checkpointMessage: string | null;
@@ -67,6 +69,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const setState = (updates: Partial<ProjectState>) => {
     setStateRaw((prev) => ({ ...prev, ...updates }));
+  };
+
+  // Merges fields into the current placement using the latest state — safe from stale closures.
+  const updatePlacement = (updates: Partial<NonNullable<ProjectState["placement"]>>) => {
+    setStateRaw((prev) => ({
+      ...prev,
+      placement: { ...(prev.placement ?? { geometryType: "rect", surfaceAttachment: null }), ...updates } as NonNullable<ProjectState["placement"]>,
+    }));
   };
 
   const scrollToTop = () => setTimeout(() => window.scrollTo(0, 0), 0);
@@ -135,6 +145,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       value={{
         state,
         setState,
+        updatePlacement,
         currentStep,
         maxReachedStep,
         checkpointMessage,

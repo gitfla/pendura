@@ -115,6 +115,7 @@ export async function deserializeSession(): Promise<{
           : null,
         cropRect: data.cropRect,
         placement: data.placement,
+        wallPlane: null,
         calibration: data.calibration,
         paintingDimensions: data.paintingDimensions,
         frameStyle: "none",
