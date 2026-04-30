@@ -76,7 +76,7 @@ export default function CropStep() {
     // Yield to browser so checkpoint screen renders before heavy computation
     await new Promise<void>(resolve => setTimeout(resolve, 0));
 
-    const blob = await perspectiveCropToBlob(
+    const { blob, aspectRatio } = await perspectiveCropToBlob(
       paintingImg,
       quad,
       displayWidth,
@@ -84,8 +84,17 @@ export default function CropStep() {
     );
 
     if (state.croppedPaintingUrl) URL.revokeObjectURL(state.croppedPaintingUrl);
+    // Re-crop invalidates any existing user painting snapshot
+    if (state.userCroppedPaintingUrl) URL.revokeObjectURL(state.userCroppedPaintingUrl);
     const url = URL.createObjectURL(blob);
-    setState({ croppedPaintingBlob: blob, croppedPaintingUrl: url });
+    setState({
+      croppedPaintingBlob: blob,
+      croppedPaintingUrl: url,
+      userCroppedPaintingUrl: null,
+      userCroppedPaintingBlob: null,
+      userCroppedPaintingAspect: aspectRatio,
+      selectedArtworkId: null,
+    });
     // Update checkpoint to show the cropped result
     updateCheckpointImage(url);
     setProcessing(false);

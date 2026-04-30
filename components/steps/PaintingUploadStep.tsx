@@ -5,10 +5,12 @@ import { useTranslations } from "next-intl";
 import { useProject } from "@/context/ProjectContext";
 import { validateImageFile } from "@/lib/validation";
 import { compressImageIfNeeded, readFileAsDataUrl } from "@/lib/image";
+import { CATALOG } from "@/lib/catalog";
+import ArtworkTray from "@/components/editor/ArtworkTray";
 
 export default function PaintingUploadStep() {
   const t = useTranslations("painting");
-  const { state, setState, goNextWithCheckpoint, goPrev } = useProject();
+  const { state, setState, goNextWithCheckpoint, goToStep, goPrev } = useProject();
   const t2 = useTranslations("checkpoint");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,13 @@ export default function PaintingUploadStep() {
     try {
       const compressed = await compressImageIfNeeded(file);
       const dataUrl = await readFileAsDataUrl(compressed);
-      setState({ paintingImage: compressed, paintingPreviewUrl: dataUrl });
+      setState({
+        paintingImage: compressed,
+        paintingPreviewUrl: dataUrl,
+        selectedArtworkId: null,
+        userCroppedPaintingUrl: null,
+        userCroppedPaintingBlob: null,
+      });
       goNextWithCheckpoint(t2("paintingDone"), dataUrl);
     } catch (err) {
       setError(String(err));
@@ -38,9 +46,28 @@ export default function PaintingUploadStep() {
     if (file) handleFile(file);
   };
 
+  const handleCatalogSelect = (id: string) => {
+    const artwork = CATALOG.find((a) => a.id === id);
+    if (!artwork) return;
+    setState({
+      selectedArtworkId: id,
+      croppedPaintingUrl: artwork.imageUrl,
+      croppedPaintingBlob: null,
+      framedPaintingBlob: null,
+      framedPaintingUrl: null,
+      frameStyle: "none",
+      userCroppedPaintingUrl: null,
+      userCroppedPaintingBlob: null,
+      // Clear any previous upload state
+      paintingImage: null,
+      paintingPreviewUrl: null,
+    });
+    goToStep("placement");
+  };
+
   return (
     <div className="px-6 py-8 max-w-lg mx-auto w-full">
-<h1 className="font-serif text-4xl leading-tight mb-4" style={{ color: "var(--on-surface)" }}>
+      <h1 className="font-serif text-4xl leading-tight mb-4" style={{ color: "var(--on-surface)" }}>
         {t("title")}
       </h1>
       <p className="text-sm leading-relaxed mb-8" style={{ color: "var(--on-surface-variant)" }}>
@@ -81,22 +108,15 @@ export default function PaintingUploadStep() {
         )}
       </div>
 
-      <div className="mb-8 p-4" style={{ backgroundColor: "var(--surface-container)" }}>
-        <p className="text-[10px] tracking-widest uppercase mb-4" style={{ color: "var(--on-surface-variant)" }}>
-          {t("notes.title")}
-        </p>
-        {[
-          { num: "01", key: "planar" },
-          { num: "02", key: "exposure" },
-          { num: "03", key: "edge" },
-        ].map(({ num, key }) => (
-          <div key={key} className="mb-4 last:mb-0 flex gap-4">
-            <span className="text-xs font-serif" style={{ color: "var(--outline-variant)", minWidth: "20px" }}>{num}</span>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--on-surface-variant)" }}>
-              {t(`notes.${key}` as "notes.planar" | "notes.exposure" | "notes.edge")}
-            </p>
-          </div>
-        ))}
+      <p className="text-[10px] tracking-widest uppercase mb-3 px-1" style={{ color: "var(--on-surface-variant)" }}>
+        {t("tray.title")}
+      </p>
+
+      <div className="mb-8 -mx-6">
+        <ArtworkTray
+          selectedId={state.selectedArtworkId}
+          onSelect={(id) => { if (id !== null) handleCatalogSelect(id); }}
+        />
       </div>
 
       {error && (
@@ -111,7 +131,6 @@ export default function PaintingUploadStep() {
         <span>←</span>
         <span>{t("previousButton")}</span>
       </button>
-
     </div>
   );
 }

@@ -10,7 +10,7 @@ type Props = {
 
 export default function StepCheckpoint({ message, onAdvance }: Props) {
   useEffect(() => {
-    const timer = setTimeout(onAdvance, 2500);
+    const timer = setTimeout(onAdvance, 1500);
     return () => clearTimeout(timer);
   }, [onAdvance]);
 

@@ -44,6 +44,9 @@
     "errors": {
       "invalidType": "Por favor, envie uma imagem JPEG, PNG ou WebP.",
       "tooLarge": "A imagem é muito grande e será comprimida."
+    },
+    "tray": {
+      "title": "Ou escolha da nossa coleção"
     }
   },
   "checkpoint": {
@@ -110,6 +113,10 @@
       "white": "Branca",
       "black": "Preta",
       "wood": "Madeira"
+    },
+    "tray": {
+      "compare": "Comparar obras",
+      "yourWork": "Sua obra"
     }
   },
   "perspective": {

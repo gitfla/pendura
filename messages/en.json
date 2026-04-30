@@ -44,6 +44,9 @@
     "errors": {
       "invalidType": "Please upload a JPEG, PNG, or WebP image.",
       "tooLarge": "Image is very large and will be compressed."
+    },
+    "tray": {
+      "title": "Or choose from our collection"
     }
   },
   "checkpoint": {
@@ -110,6 +113,10 @@
       "white": "White",
       "black": "Black",
       "wood": "Wood"
+    },
+    "tray": {
+      "compare": "Compare artworks",
+      "yourWork": "Your work"
     }
   },
   "perspective": {

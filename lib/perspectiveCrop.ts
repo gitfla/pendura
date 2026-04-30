@@ -14,7 +14,7 @@ export function perspectiveCropToBlob(
   quad: Quad,
   displayWidth: number,
   displayHeight: number,
-): Promise<Blob> {
+): Promise<{ blob: Blob; aspectRatio: number }> {
   const scaleX = image.naturalWidth / displayWidth;
   const scaleY = image.naturalHeight / displayHeight;
 
@@ -112,9 +112,10 @@ export function perspectiveCropToBlob(
 
   dstCtx.putImageData(dstImageData, 0, 0);
 
+  const aspectRatio = outW / outH;
   return new Promise((resolve, reject) => {
     dstCanvas.toBlob((blob) => {
-      if (blob) resolve(blob);
+      if (blob) resolve({ blob, aspectRatio });
       else reject(new Error("Failed to create perspective crop blob"));
     }, "image/png");
   });

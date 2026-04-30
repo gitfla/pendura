@@ -10,6 +10,8 @@ import dynamic from "next/dynamic";
 import type { PlacementCanvasHandle, WallConstraint } from "@/components/editor/PlacementCanvas";
 import CalibrationOverlay from "@/components/editor/CalibrationOverlay";
 import WallPolygonOverlay, { type WallPolygonPoints } from "@/components/editor/WallPolygonOverlay";
+import ArtworkTray from "@/components/editor/ArtworkTray";
+import { CATALOG } from "@/lib/catalog";
 
 const PlacementCanvas = dynamic(() => import("@/components/editor/PlacementCanvas"), {
   ssr: false,
@@ -70,6 +72,9 @@ export default function PlacementStep() {
 
   // Frame style
   const [frameStyle, setFrameStyle] = useState<FrameStyle>(state.frameStyle ?? "none");
+
+  // Artwork tray
+  const [trayOpen, setTrayOpen] = useState(false);
 
   // ── Setup ──────────────────────────────────────────────────────────────────
 
@@ -250,6 +255,8 @@ export default function PlacementStep() {
 
     setState({ wallPlane });
     setCalibPhase("off");
+    canvasRef.current?.exitPerspectiveMode();
+    setPerspMode(false);
     // Auto-attach immediately after wall is defined — pass wallPlane directly since state hasn't updated yet
     handleWallAttach(wallPlane);
   };
@@ -277,13 +284,43 @@ export default function PlacementStep() {
       return;
     }
 
-    // First attach: use painting's canvas pixel dimensions for aspect ratio (not the screen quad,
-    // which may be warped after corner editing). Fall back to 1:1 if unavailable.
-    const { canvasWidth = 1, canvasHeight = 1 } = placement;
-    const paintingAspect = canvasHeight > 0 ? canvasWidth / canvasHeight : 1;
+    // First attach: derive aspect ratio from the painting itself.
+    // For catalog artworks use the known aspectRatio. For user uploads, derive from the
+    // screen quad bounding box (canvasWidth/canvasHeight are the stage dimensions, not painting).
+    let paintingAspect: number;
+    if (state.selectedArtworkId) {
+      const artwork = CATALOG.find((a) => a.id === state.selectedArtworkId);
+      paintingAspect = artwork ? artwork.aspectRatio : 1;
+    } else if (state.userCroppedPaintingAspect) {
+      // Use the aspect stored at crop time — more accurate than deriving from the screen quad.
+      paintingAspect = state.userCroppedPaintingAspect;
+    } else {
+      const q = placement.quad;
+      const w = (euclideanDistance(q.topLeft, q.topRight) + euclideanDistance(q.bottomLeft, q.bottomRight)) / 2;
+      const h = (euclideanDistance(q.topLeft, q.bottomLeft) + euclideanDistance(q.topRight, q.bottomRight)) / 2;
+      paintingAspect = h > 0 ? w / h : 1;
+    }
 
-    const widthWallUnits  = 0.25;
-    const heightWallUnits = 0.25 / paintingAspect;
+    // The wall UV space is [0,1]², but the wall polygon is not square on screen.
+    // widthWallUnits and heightWallUnits must compensate for the wall's screen pixel
+    // dimensions so the painting appears at the correct aspect ratio on screen.
+    // wallScreenW/wallScreenH is the correction factor.
+    const wp = wallPlane.polygon;
+    const wallScreenW = (euclideanDistance(wp[0], wp[1]) + euclideanDistance(wp[3], wp[2])) / 2;
+    const wallScreenH = (euclideanDistance(wp[0], wp[3]) + euclideanDistance(wp[1], wp[2])) / 2;
+
+    // Start at 25% of wall width, but ensure the painting is at least 80px on its shorter screen side.
+    const MIN_SCREEN_PX = 80;
+    let widthWallUnits  = 0.25;
+    let heightWallUnits = widthWallUnits / paintingAspect * (wallScreenW / wallScreenH);
+    const screenW = widthWallUnits  * wallScreenW;
+    const screenH = heightWallUnits * wallScreenH;
+    const minSide = Math.min(screenW, screenH);
+    if (minSide < MIN_SCREEN_PX) {
+      const scale = MIN_SCREEN_PX / minSide;
+      widthWallUnits  *= scale;
+      heightWallUnits *= scale;
+    }
 
     // Always center on wall on first attach — painting is rarely over the wall already
     const clampedCenter = { u: 0.5, v: 0.5 };
@@ -337,6 +374,123 @@ export default function PlacementStep() {
       heightWallUnits: undefined,
     });
     canvasRef.current?.setQuad(rectQuad);
+  };
+
+  // ── Artwork swap ────────────────────────────────────────────────────────────
+
+  const handleArtworkSelect = (id: string | null) => {
+    // Tapping the already-selected item — do nothing
+    if (id === state.selectedArtworkId) return;
+
+    let newUrl: string;
+    let newAspect: number;
+
+    if (id === null) {
+      // Restore user's own painting
+      if (!state.userCroppedPaintingUrl) return;
+      newUrl = state.userCroppedPaintingUrl;
+      // Use the aspect ratio stored at crop time — same source of truth as catalog artworks.
+      newAspect = state.userCroppedPaintingAspect ?? 1;
+    } else {
+      const artwork = CATALOG.find((a) => a.id === id);
+      if (!artwork) return;
+      newUrl = artwork.imageUrl;
+      newAspect = artwork.aspectRatio;
+    }
+
+    if (state.framedPaintingUrl) URL.revokeObjectURL(state.framedPaintingUrl);
+
+    // Snapshot user painting on first catalog selection.
+    // Create a fresh blob URL from the blob — the existing croppedPaintingUrl may be
+    // revoked later (e.g. by CropStep) while the snapshot needs to stay alive.
+    const snapshotFields =
+      state.selectedArtworkId === null && id !== null && !state.userCroppedPaintingUrl && state.croppedPaintingBlob
+        ? { userCroppedPaintingUrl: URL.createObjectURL(state.croppedPaintingBlob), userCroppedPaintingBlob: state.croppedPaintingBlob }
+        : {};
+
+    setState({
+      selectedArtworkId: id,
+      croppedPaintingUrl: newUrl,
+      croppedPaintingBlob: id === null ? state.userCroppedPaintingBlob : null,
+      framedPaintingBlob: null,
+      framedPaintingUrl: null,
+      ...snapshotFields,
+    });
+
+    const p = state.placement;
+    if (geometryType === GeometryType.WallAttachedQuad && state.wallPlane && p?.widthWallUnits && p?.planeCenter) {
+      // Wall-attached: preserve width in wall units, recompute height from new aspect.
+      // Apply same wall screen dimension correction as handleWallAttach.
+      // Use wallUnitsRef for u/v if available — it tracks the latest dragged position
+      // and avoids stale-closure snap-back when the user dragged since last render.
+      // u/v: always from state — correctly updated by move drags via onTransformChange.
+      // w: from wallUnitsRef if mid-scale-drag, otherwise from state.
+      const latestU = p.planeCenter.u;
+      const latestV = p.planeCenter.v;
+      const latestW = wallUnitsRef.current?.w ?? p.widthWallUnits;
+      console.log("[handleArtworkSelect] wallUnitsRef:", JSON.stringify(wallUnitsRef.current));
+      console.log("[handleArtworkSelect] state.planeCenter:", JSON.stringify(p.planeCenter), "widthWallUnits:", p.widthWallUnits);
+      console.log("[handleArtworkSelect] using latestU:", latestU, "latestV:", latestV, "latestW:", latestW);
+      const wp = state.wallPlane.polygon;
+      const wallScreenW = (euclideanDistance(wp[0], wp[1]) + euclideanDistance(wp[3], wp[2])) / 2;
+      const wallScreenH = (euclideanDistance(wp[0], wp[3]) + euclideanDistance(wp[1], wp[2])) / 2;
+      const newH = latestW / newAspect * (wallScreenW / wallScreenH);
+      const halfH = newH / 2;
+      const clampedV = Math.max(halfH, Math.min(1 - halfH, latestV));
+      const planeCenter = { u: latestU, v: clampedV };
+      const newQuad = projectArtworkOnWall(state.wallPlane, planeCenter, latestW, newH);
+      console.log("[handleArtworkSelect] → planeCenter:", JSON.stringify(planeCenter), "newQuad TL:", JSON.stringify(newQuad.topLeft));
+      wallUnitsRef.current = { w: latestW, h: newH, u: planeCenter.u, v: planeCenter.v };
+      updatePlacement({ heightWallUnits: newH, planeCenter, quad: newQuad });
+      canvasRef.current?.setQuad(newQuad);
+    } else if (p?.quad) {
+      // Rect / freeQuad: preserve width, recompute height from new aspect.
+      // For freeQuad: keep top edge fixed, reposition bottom edge to match new height.
+      // For rect: also re-center vertically.
+      const q = p.quad;
+      const currentWidth  = (
+        euclideanDistance(q.topLeft, q.topRight) +
+        euclideanDistance(q.bottomLeft, q.bottomRight)
+      ) / 2;
+      const currentHeight = (
+        euclideanDistance(q.topLeft, q.bottomLeft) +
+        euclideanDistance(q.topRight, q.bottomRight)
+      ) / 2;
+      const heightScale = (currentWidth / newAspect) / currentHeight;
+
+      if (geometryType === GeometryType.FreeQuad) {
+        // Keep top edge fixed, scale bottom corners away from top edge
+        const newQuad: Quad = {
+          topLeft:     q.topLeft,
+          topRight:    q.topRight,
+          bottomLeft:  {
+            x: q.topLeft.x  + (q.bottomLeft.x  - q.topLeft.x)  * heightScale,
+            y: q.topLeft.y  + (q.bottomLeft.y  - q.topLeft.y)  * heightScale,
+          },
+          bottomRight: {
+            x: q.topRight.x + (q.bottomRight.x - q.topRight.x) * heightScale,
+            y: q.topRight.y + (q.bottomRight.y - q.topRight.y) * heightScale,
+          },
+        };
+        updatePlacement({ quad: newQuad });
+        canvasRef.current?.setQuad(newQuad);
+      } else {
+        // Rect: axis-aligned, re-center vertically
+        const left  = Math.min(q.topLeft.x, q.bottomLeft.x);
+        const right = Math.max(q.topRight.x, q.bottomRight.x);
+        const width = right - left;
+        const newHeight = width / newAspect;
+        const cy = (q.topLeft.y + q.bottomLeft.y + q.topRight.y + q.bottomRight.y) / 4;
+        const newQuad: Quad = {
+          topLeft:     { x: left,  y: cy - newHeight / 2 },
+          topRight:    { x: right, y: cy - newHeight / 2 },
+          bottomRight: { x: right, y: cy + newHeight / 2 },
+          bottomLeft:  { x: left,  y: cy + newHeight / 2 },
+        };
+        updatePlacement({ quad: newQuad, geometryType: GeometryType.Rect });
+        canvasRef.current?.setQuad(newQuad);
+      }
+    }
   };
 
   const distNum = parseFloat(distance);
@@ -435,12 +589,21 @@ export default function PlacementStep() {
                       // wall-plane fields (widthWallUnits, heightWallUnits, etc.) set by handleWallAttach.
                       // When wall-attached, also update planeCenter from the new quad centroid.
                       if (geometryType === GeometryType.WallAttachedQuad && state.wallPlane) {
-                        const cx = (quad.topLeft.x + quad.topRight.x + quad.bottomRight.x + quad.bottomLeft.x) / 4;
-                        const cy = (quad.topLeft.y + quad.topRight.y + quad.bottomRight.y + quad.bottomLeft.y) / 4;
-                        updatePlacement({
-                          quad, canvasWidth, canvasHeight, geometryType,
-                          planeCenter: screenPointToWallUV(state.wallPlane, { x: cx, y: cy }),
-                        });
+                        // Only recompute planeCenter from centroid during actual pointer drag.
+                        // Programmatic setQuad calls (image swap, initial attach) also fire
+                        // onTransformChange — if we recompute planeCenter there, a differently-sized
+                        // quad shifts the centroid in screen space → different UV → drift on every swap.
+                        const dragging = canvasRef.current?.isDragging();
+                        if (dragging) {
+                          const cx = (quad.topLeft.x + quad.topRight.x + quad.bottomRight.x + quad.bottomLeft.x) / 4;
+                          const cy = (quad.topLeft.y + quad.topRight.y + quad.bottomRight.y + quad.bottomLeft.y) / 4;
+                          const newPlaneCenter = screenPointToWallUV(state.wallPlane, { x: cx, y: cy });
+                          console.log("[onTransformChange] dragging=true → updating planeCenter:", JSON.stringify(newPlaneCenter));
+                          updatePlacement({ quad, canvasWidth, canvasHeight, geometryType, planeCenter: newPlaneCenter });
+                        } else {
+                          console.log("[onTransformChange] dragging=false → skipping planeCenter update, keeping:", JSON.stringify(state.placement?.planeCenter));
+                          updatePlacement({ quad, canvasWidth, canvasHeight, geometryType });
+                        }
                       } else {
                         updatePlacement({ quad, canvasWidth, canvasHeight, geometryType });
                       }
@@ -655,6 +818,30 @@ export default function PlacementStep() {
         </div>
       )}
 
+      {/* ── Artwork tray (compare) ── */}
+      {!inCalib && (
+        <div className="mb-4 -mx-6">
+          <button
+            onClick={() => setTrayOpen((v) => !v)}
+            className="w-full flex items-center justify-between px-6 py-3 text-[10px] tracking-widest uppercase"
+            style={{ color: "var(--on-surface-variant)" }}
+          >
+            <span>{t("tray.compare")}</span>
+            <span>{trayOpen ? "↑" : "↓"}</span>
+          </button>
+          {trayOpen && (
+            <ArtworkTray
+              userPaintingUrl={
+                state.userCroppedPaintingUrl ??
+                (state.selectedArtworkId === null ? state.croppedPaintingUrl : null)
+              }
+              selectedId={state.selectedArtworkId}
+              onSelect={handleArtworkSelect}
+            />
+          )}
+        </div>
+      )}
+
       {/* ── Normal mode buttons ── */}
       {!inCalib && (
         <>
@@ -806,7 +993,7 @@ export default function PlacementStep() {
           </button>
 
           <button
-            onClick={goPrev}
+            onClick={() => state.selectedArtworkId ? goToStep("painting") : goPrev()}
             className="w-full py-3 text-xs tracking-widest uppercase flex items-center gap-2 px-6"
             style={{ color: "var(--on-surface-variant)" }}
           >

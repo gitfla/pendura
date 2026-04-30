@@ -57,6 +57,7 @@ export type PlacementCanvasHandle = {
   setInitialRect: (rect: { x: number; y: number; width: number; height: number }) => void;
   setQuad: (quad: Quad) => void;
   getCanvasHeight: () => number;
+  isDragging: () => boolean;
 };
 
 export type WallConstraint = {
@@ -374,6 +375,9 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
       setQuad(q);
       onTransformChange(q, containerWidth, stageHeight);
     },
+    isDragging() {
+      return draggingRef.current !== null;
+    },
   }));
 
   // ── Pointer event helpers ──────────────────────────────────────────────
@@ -627,9 +631,9 @@ const PlacementCanvas = forwardRef<PlacementCanvasHandle, Props>(function Placem
   // ── Pointer up ─────────────────────────────────────────────────────────
 
   const onPointerUp = useCallback(() => {
-    draggingRef.current = null;
     if (canvasRef.current) canvasRef.current.style.cursor = "default";
     if (quad) onTransformChange(quad, containerWidth, stageHeight);
+    draggingRef.current = null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quad, containerWidth, stageHeight]);
 

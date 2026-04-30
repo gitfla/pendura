@@ -54,7 +54,15 @@ export default function RenderStep() {
   const [error, setError] = useState<string | null>(null);
 
   const handleRender = async () => {
-    if (!state.wallImage || !state.croppedPaintingBlob || !state.placement) return;
+    if (!state.wallImage || !state.placement) return;
+
+    // Catalog artworks have no blob — fetch them on demand
+    let paintingBlob = state.framedPaintingBlob ?? state.croppedPaintingBlob;
+    if (!paintingBlob && state.croppedPaintingUrl) {
+      const res = await fetch(state.croppedPaintingUrl);
+      paintingBlob = await res.blob();
+    }
+    if (!paintingBlob) return;
 
     setLoading(true);
     setError(null);
@@ -67,7 +75,7 @@ export default function RenderStep() {
 
       // Downscale images to fit within Vercel's payload limit
       const { blob: wallBlob, scale: wallScale } = await downscaleBlob(state.wallImage, MAX_UPLOAD_DIM);
-      const { blob: paintingBlob } = await downscaleBlob((state.framedPaintingBlob ?? state.croppedPaintingBlob)!, MAX_UPLOAD_DIM);
+      const { blob: scaledPaintingBlob } = await downscaleBlob(paintingBlob, MAX_UPLOAD_DIM);
 
       // Scale quad: display → natural coords → downscaled coords
       const q = state.placement.quad;
@@ -82,7 +90,7 @@ export default function RenderStep() {
 
       const formData = new FormData();
       formData.append("wallImage", wallBlob, "wall.jpg");
-      formData.append("paintingImage", paintingBlob, "painting.jpg");
+      formData.append("paintingImage", scaledPaintingBlob, "painting.jpg");
       formData.append("quad", JSON.stringify(scaledQuad));
       formData.append("shadow", JSON.stringify(SHADOW_DEFAULTS));
 

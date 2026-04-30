@@ -90,6 +90,10 @@ export type ProjectState = {
   frameStyle: FrameStyle;
   framedPaintingBlob: Blob | null;
   framedPaintingUrl: string | null;
+  selectedArtworkId: string | null;      // null = user's own upload
+  userCroppedPaintingUrl: string | null; // snapshot of user's painting when they first swap to catalog
+  userCroppedPaintingBlob: Blob | null;
+  userCroppedPaintingAspect: number | null; // aspect ratio (w/h) of user's painting at snapshot time
 };
 
 export type Step =
